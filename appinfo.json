@@ -1,0 +1,29 @@
+{
+    "versionLabel": "1.0",
+    "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
+    "appKeys": {},
+    "longName": "Casio WV-58DE",
+    "versionCode": 1,
+    "capabilities": [
+        ""
+    ],
+    "shortName": "Casio WV-58DE",
+    "companyName": "PanicMan",
+    "watchapp": {
+        "watchface": true
+    },
+    "resources": {
+        "media": [
+            {
+                "type": "png",
+                "name": "RESOURCE_ID_IMAGE_BACKGROUND",
+                "file": "images/Background.png"
+            },
+            {
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_25",
+                "file": "fonts/DS-DIGIB.TTF"
+            }
+        ]
+    }
+}
