@@ -15,13 +15,30 @@
     "resources": {
         "media": [
             {
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITALTHIN_55",
+                "file": "fonts/Digital Readout Thick Upright.ttf"
+            },
+            {
+                "type": "png",
+                "name": "RESOURCE_ID_IMAGE_RADIO",
+                "file": "images/Radio.png"
+            },
+            {
                 "type": "png",
                 "name": "RESOURCE_ID_IMAGE_BACKGROUND",
                 "file": "images/Background.png"
             },
             {
+                "characterRegex": "[A-Z0-9]",
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITAL_25",
+                "file": "fonts/DS-DIGIB.TTF"
+            },
+            {
+                "characterRegex": "[0-9:]",
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_55",
                 "file": "fonts/DS-DIGIB.TTF"
             }
         ]
