@@ -2,10 +2,10 @@
 
 Window *window;
 TextLayer *ddmm_layer, *yyyy_layer, *hhmm_layer, *ss_layer, *wd_layer;
-BitmapLayer *background_layer, *radio_layer;
+BitmapLayer *background_layer, *radio_layer, *battery_layer, *dst_layer;
 
-static GBitmap *background, *radio;
-static GFont digitS, digitM, digitL;
+static GBitmap *background, *radio, *batteryAll;
+static GFont digitSS, digitS, digitM, digitL;
 
 char ddmmBuffer[] = "00-00";
 char yyyyBuffer[] = "0000";
@@ -22,9 +22,47 @@ char *upcase(char *str) {
     return str;
 }
 
+void battery_state_service_handler(BatteryChargeState charge_state) 
+{
+	int nImage = 0;
+	if (charge_state.is_charging)
+		nImage = 10;
+	else 
+		nImage = 10 - (charge_state.charge_percent / 10);
+	
+	GRect sub_rect = GRect(0, 10*nImage, 20, 10*nImage+10);
+	bitmap_layer_set_bitmap(battery_layer, gbitmap_create_as_sub_bitmap(batteryAll, sub_rect));
+}
+
 void bluetooth_connection_handler(bool connected)
 {
 	layer_set_hidden(bitmap_layer_get_layer(radio_layer), connected != true);
+}
+
+void on_animation_stopped(Animation *anim, bool finished, void *context)
+{
+    //Free the memoery used by the Animation
+    property_animation_destroy((PropertyAnimation*)anim);
+}
+
+void animate_layer(Layer *layer, GRect *start, GRect *finish, int duration, int delay)
+{
+    //Declare animation
+    PropertyAnimation *anim = property_animation_create_layer_frame(layer, start, finish);
+     
+    //Set characteristics
+    animation_set_duration((Animation*) anim, duration);
+    animation_set_delay((Animation*) anim, delay);
+     
+    //Set stopped handler to free memory
+    AnimationHandlers handlers = {
+        //The reference to the stopped handler is the only one in the array
+        .stopped = (AnimationStoppedHandler) on_animation_stopped
+    };
+    animation_set_handlers((Animation*) anim, handlers, NULL);
+     
+    //Start animation
+    animation_schedule((Animation*) anim);
 }
 
 void tick_handler(struct tm *tick_time, TimeUnits units_changed)
@@ -34,6 +72,15 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 	strftime(ssBuffer, sizeof(ssBuffer), "%S", tick_time);
 	text_layer_set_text(ss_layer, ssBuffer);
 
+	//Animate Hour/Min
+	if(seconds == 59)
+	{
+		//Slide offscreen to the left
+		GRect start = GRect(0, 50, 110, 75);
+		GRect finish = GRect(-110, 50, 110, 75);
+		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 500, 800);
+	}
+	
 	if(seconds == 0 || units_changed == MINUTE_UNIT)
 	{
 		if(clock_is_24h_style())
@@ -53,6 +100,15 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 
 		strftime(yyyyBuffer, sizeof(yyyyBuffer), "%Y", tick_time);
 		text_layer_set_text(yyyy_layer, yyyyBuffer);
+
+		//Slide onscreen from the left
+		GRect start = GRect(-110, 50, 110, 75);
+		GRect finish = GRect(0, 50, 110, 75);
+		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 500, 800);
+		
+		//Check DST at 4h at morning
+		if ((tick_time->tm_hour == 4 && tick_time->tm_min == 0) || units_changed == MINUTE_UNIT)
+			layer_set_hidden(bitmap_layer_get_layer(dst_layer), tick_time->tm_isdst != 1);
 	}
 }
 
@@ -67,6 +123,7 @@ void window_load(Window *window)
 	bitmap_layer_set_bitmap(background_layer, background);
 	layer_add_child(window_layer, bitmap_layer_get_layer(background_layer));
 	
+	digitSS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_12));
 	digitS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_25));
 	digitM = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_35));
 	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITALTHIN_55));
@@ -88,7 +145,7 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(yyyy_layer));
         
 	//HOUR+MINUTE layer
-	hhmm_layer = text_layer_create(GRect(0, 50, 110, 75));
+	hhmm_layer = text_layer_create(GRect(-110, 50, 110, 75));
 	text_layer_set_background_color(hhmm_layer, GColorClear);
 	text_layer_set_text_color(hhmm_layer, GColorBlack);
 	text_layer_set_text_alignment(hhmm_layer, GTextAlignmentCenter);
@@ -103,6 +160,18 @@ void window_load(Window *window)
 	text_layer_set_font(ss_layer, digitS);
 	layer_add_child(window_layer, text_layer_get_layer(ss_layer));
         
+	//Init battery
+	batteryAll = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_BATTERIES);
+	battery_layer = bitmap_layer_create(GRect(115, 90, 20, 10)); 
+	bitmap_layer_set_background_color(battery_layer, GColorClear);
+	layer_add_child(window_layer, bitmap_layer_get_layer(battery_layer));
+
+	//DST layer, have to be after battery, uses its image
+	dst_layer = bitmap_layer_create(GRect(123, 52, 12, 5));
+	bitmap_layer_set_background_color(dst_layer, GColorClear);
+	bitmap_layer_set_bitmap(dst_layer, gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 110, 12, 5)));
+	layer_add_child(window_layer, bitmap_layer_get_layer(dst_layer));
+        
 	//WEEKDAY layer
 	wd_layer = text_layer_create(GRect(3, 125, 84, 40));
 	text_layer_set_background_color(wd_layer, GColorClear);
@@ -113,7 +182,7 @@ void window_load(Window *window)
         
 	//Init bluetooth radio
 	radio = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_RADIO);
-	radio_layer = bitmap_layer_create(GRect(106, 130, 31, 33)); //31x33
+	radio_layer = bitmap_layer_create(GRect(106, 130, 31, 33));
 	bitmap_layer_set_background_color(radio_layer, GColorClear);
 	bitmap_layer_set_bitmap(radio_layer, radio);
 	bitmap_layer_set_compositing_mode(radio_layer, GCompOpAnd);
@@ -126,6 +195,11 @@ void window_load(Window *window)
 	//Manually call the tick handler when the window is loading
 	tick_handler(t, MINUTE_UNIT);
 	
+	//Set Battery state
+	BatteryChargeState btchg = battery_state_service_peek();
+	battery_state_service_handler(btchg);
+	
+	//Set Bluetooth state
 	bool connected = bluetooth_connection_service_peek();
 	bluetooth_connection_handler(connected);
 }
@@ -140,15 +214,19 @@ void window_unload(Window *window)
 	text_layer_destroy(wd_layer);
 	
 	//Unload Fonts
+	fonts_unload_custom_font(digitSS);
 	fonts_unload_custom_font(digitS);
 	fonts_unload_custom_font(digitM);
 	fonts_unload_custom_font(digitL);
 	
 	//Destroy GBitmaps
+	gbitmap_destroy(batteryAll);
 	gbitmap_destroy(radio);
 	gbitmap_destroy(background);
 
 	//Destroy BitmapLayers
+	bitmap_layer_destroy(dst_layer);
+	bitmap_layer_destroy(battery_layer);
 	bitmap_layer_destroy(radio_layer);
 	bitmap_layer_destroy(background_layer);
 }
@@ -161,12 +239,14 @@ void handle_init(void) {
 	});
     window_stack_push(window, true);
 	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler)tick_handler);
+	battery_state_service_subscribe(&battery_state_service_handler);
 	bluetooth_connection_service_subscribe(&bluetooth_connection_handler);
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
 }
 
 void handle_deinit(void) {
 	tick_timer_service_unsubscribe();
+	battery_state_service_unsubscribe();
 	bluetooth_connection_service_unsubscribe();
 	window_destroy(window);
 }

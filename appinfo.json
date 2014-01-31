@@ -20,6 +20,12 @@
                 "file": "images/Battery.png"
             },
             {
+                "characterRegex": "[DST]",
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_12",
+                "file": "fonts/DIGITAL_BOLD.TTF"
+            },
+            {
                 "characterRegex": "[A-Z]",
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITAL_35",
