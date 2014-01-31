@@ -15,6 +15,29 @@
     "resources": {
         "media": [
             {
+                "type": "png",
+                "name": "RESOURCE_ID_IMAGE_BATTERIES",
+                "file": "images/Battery.png"
+            },
+            {
+                "characterRegex": "[A-Z]",
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_35",
+                "file": "fonts/DIGITAL_BOLD.TTF"
+            },
+            {
+                "characterRegex": "[-A-Z0-9:\\s]",
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_25",
+                "file": "fonts/DIGITAL_BOLD.TTF"
+            },
+            {
+                "menuIcon": true,
+                "type": "png",
+                "name": "RESOURCE_ID_IMAGE_MENUICON",
+                "file": "images/MenuImage.png"
+            },
+            {
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITALTHIN_55",
                 "file": "fonts/Digital Readout Thick Upright.ttf"
@@ -28,18 +51,6 @@
                 "type": "png",
                 "name": "RESOURCE_ID_IMAGE_BACKGROUND",
                 "file": "images/Background.png"
-            },
-            {
-                "characterRegex": "[A-Z0-9]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_25",
-                "file": "fonts/DS-DIGIB.TTF"
-            },
-            {
-                "characterRegex": "[0-9:]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_55",
-                "file": "fonts/DS-DIGIB.TTF"
             }
         ]
     }
