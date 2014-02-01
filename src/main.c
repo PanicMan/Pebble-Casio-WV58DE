@@ -78,7 +78,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		//Slide offscreen to the left
 		GRect start = GRect(0, 50, 110, 75);
 		GRect finish = GRect(-110, 50, 110, 75);
-		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 500, 800);
+		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
 	}
 	
 	if(seconds == 0 || units_changed == MINUTE_UNIT)
@@ -104,7 +104,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		//Slide onscreen from the left
 		GRect start = GRect(-110, 50, 110, 75);
 		GRect finish = GRect(0, 50, 110, 75);
-		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 500, 800);
+		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
 		
 		//Check DST at 4h at morning
 		if ((tick_time->tm_hour == 4 && tick_time->tm_min == 0) || units_changed == MINUTE_UNIT)
