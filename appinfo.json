@@ -44,6 +44,8 @@
                 "file": "images/MenuImage.png"
             },
             {
+                "trackingAdjust": -1,
+                "characterRegex": "[0-9:]",
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITALTHIN_55",
                 "file": "fonts/Digital Readout Thick Upright.ttf"
