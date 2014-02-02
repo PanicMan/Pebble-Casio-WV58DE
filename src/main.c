@@ -3,6 +3,7 @@
 Window *window;
 TextLayer *ddmm_layer, *yyyy_layer, *hhmm_layer, *ss_layer, *wd_layer;
 BitmapLayer *background_layer, *radio_layer, *battery_layer, *dst_layer;
+InverterLayer *inv_layer;
 
 static GBitmap *background, *radio, *batteryAll;
 static GFont digitSS, digitS, digitM, digitL;
@@ -187,6 +188,10 @@ void window_load(Window *window)
 	bitmap_layer_set_bitmap(radio_layer, radio);
 	bitmap_layer_set_compositing_mode(radio_layer, GCompOpAnd);
 	layer_add_child(window_layer, bitmap_layer_get_layer(radio_layer));
+	
+	//Init inverter_layer
+	inv_layer = inverter_layer_create(GRect(0, 0, 144, 168));
+	//layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
 
 	//Get a time structure so that it doesn't start blank
 	time_t temp = time(NULL);
@@ -229,6 +234,9 @@ void window_unload(Window *window)
 	bitmap_layer_destroy(battery_layer);
 	bitmap_layer_destroy(radio_layer);
 	bitmap_layer_destroy(background_layer);
+	
+	//Destroy Inverter Layer
+	inverter_layer_destroy(inv_layer);
 }
 
 void handle_init(void) {
