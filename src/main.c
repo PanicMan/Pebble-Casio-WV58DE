@@ -6,7 +6,7 @@ BitmapLayer *background_layer, *radio_layer, *battery_layer, *dst_layer;
 InverterLayer *inv_layer;
 
 static GBitmap *background, *radio, *batteryAll;
-static GFont digitSS, digitS, digitM, digitL;
+static GFont digitS, digitM, digitL;
 
 char ddmmBuffer[] = "00-00";
 char yyyyBuffer[] = "0000";
@@ -77,9 +77,21 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 	if(seconds == 59)
 	{
 		//Slide offscreen to the left
-		GRect start = GRect(0, 50, 110, 75);
+		GRect start = GRect(2, 50, 110, 75);
 		GRect finish = GRect(-110, 50, 110, 75);
 		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
+	}
+	else if(seconds < 5 || units_changed == MINUTE_UNIT)
+	{
+		//Workaround, hangs sometimes outside the screen
+		GRect rc = layer_get_frame(text_layer_get_layer(hhmm_layer));
+		if (rc.origin.x == -110)
+		{
+			//Slide onscreen from the left
+			GRect start = GRect(-110, 50, 110, 75);
+			GRect finish = GRect(2, 50, 110, 75);
+			animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
+		}
 	}
 	
 	if(seconds == 0 || units_changed == MINUTE_UNIT)
@@ -89,24 +101,20 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		else
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%I:%M", tick_time);
 		
+		//strcpy(hhmmBuffer, "22:22");
 		text_layer_set_text(hhmm_layer, hhmmBuffer);
 		
 		strftime(ddmmBuffer, sizeof(ddmmBuffer), "%d-%m", tick_time);
+		//snprintf(ddmmBuffer, sizeof(ddmmBuffer), "%d", rc.origin.x);
 		text_layer_set_text(ddmm_layer, ddmmBuffer);
 		
 		strftime(wdBuffer, sizeof(wdBuffer), "%a", tick_time);
-		//strcpy(wdBuffer, "Mon");
 		upcase(wdBuffer);
 		text_layer_set_text(wd_layer, wdBuffer);
 
 		strftime(yyyyBuffer, sizeof(yyyyBuffer), "%Y", tick_time);
 		text_layer_set_text(yyyy_layer, yyyyBuffer);
 
-		//Slide onscreen from the left
-		GRect start = GRect(-110, 50, 110, 75);
-		GRect finish = GRect(0, 50, 110, 75);
-		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
-		
 		//Check DST at 4h at morning
 		if ((tick_time->tm_hour == 4 && tick_time->tm_min == 0) || units_changed == MINUTE_UNIT)
 			layer_set_hidden(bitmap_layer_get_layer(dst_layer), tick_time->tm_isdst != 1);
@@ -124,10 +132,9 @@ void window_load(Window *window)
 	bitmap_layer_set_bitmap(background_layer, background);
 	layer_add_child(window_layer, bitmap_layer_get_layer(background_layer));
 	
-	digitSS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_12));
 	digitS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_25));
 	digitM = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_35));
-	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITALTHIN_55));
+	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_55));
   
 	//DAY+MONTH layer
 	ddmm_layer = text_layer_create(GRect(2, 5, 70, 32));
@@ -163,7 +170,7 @@ void window_load(Window *window)
         
 	//Init battery
 	batteryAll = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_BATTERIES);
-	battery_layer = bitmap_layer_create(GRect(115, 90, 20, 10)); 
+	battery_layer = bitmap_layer_create(GRect(116, 90, 20, 10)); 
 	bitmap_layer_set_background_color(battery_layer, GColorClear);
 	layer_add_child(window_layer, bitmap_layer_get_layer(battery_layer));
 
@@ -219,7 +226,6 @@ void window_unload(Window *window)
 	text_layer_destroy(wd_layer);
 	
 	//Unload Fonts
-	fonts_unload_custom_font(digitSS);
 	fonts_unload_custom_font(digitS);
 	fonts_unload_custom_font(digitM);
 	fonts_unload_custom_font(digitL);

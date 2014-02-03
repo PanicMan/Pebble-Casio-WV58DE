@@ -20,15 +20,10 @@
                 "file": "images/Battery.png"
             },
             {
-                "characterRegex": "[DST]",
+                "trackingAdjust": -3,
+                "characterRegex": "[0-9:]",
                 "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_12",
-                "file": "fonts/DIGITAL_BOLD.TTF"
-            },
-            {
-                "characterRegex": "[A-Z]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_35",
+                "name": "RESOURCE_ID_FONT_DIGITAL_55",
                 "file": "fonts/DIGITAL_BOLD.TTF"
             },
             {
@@ -38,17 +33,16 @@
                 "file": "fonts/DIGITAL_BOLD.TTF"
             },
             {
+                "characterRegex": "[A-Z]",
+                "type": "font",
+                "name": "RESOURCE_ID_FONT_DIGITAL_35",
+                "file": "fonts/DIGITAL_BOLD.TTF"
+            },
+            {
                 "menuIcon": true,
                 "type": "png",
                 "name": "RESOURCE_ID_IMAGE_MENUICON",
                 "file": "images/MenuImage.png"
-            },
-            {
-                "trackingAdjust": -1,
-                "characterRegex": "[0-9:]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITALTHIN_55",
-                "file": "fonts/Digital Readout Thick Upright.ttf"
             },
             {
                 "type": "png",
