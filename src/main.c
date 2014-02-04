@@ -54,7 +54,13 @@ void animate_layer(Layer *layer, GRect *start, GRect *finish, int duration, int 
     //Set characteristics
     animation_set_duration((Animation*) anim, duration);
     animation_set_delay((Animation*) anim, delay);
-     
+	
+	//Set curve for in/out
+	if (finish->origin.x > 0)
+		animation_set_curve((Animation*) anim, AnimationCurveEaseOut);
+	else
+		animation_set_curve((Animation*) anim, AnimationCurveEaseIn);
+	
     //Set stopped handler to free memory
     AnimationHandlers handlers = {
         //The reference to the stopped handler is the only one in the array
