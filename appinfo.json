@@ -1,11 +1,15 @@
 {
-    "versionLabel": "1.3",
+    "versionLabel": "1.4",
     "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
-    "appKeys": {},
+    "appKeys": {
+        "inv": 1,
+        "datefmt": 3,
+        "vibr": 2
+    },
     "longName": "Casio WV-58DE",
-    "versionCode": 4,
+    "versionCode": 5,
     "capabilities": [
-        ""
+        "configurable"
     ],
     "shortName": "Casio WV-58DE",
     "companyName": "PanicMan",
@@ -14,6 +18,12 @@
     },
     "resources": {
         "media": [
+            {
+                "menuIcon": true,
+                "type": "png",
+                "name": "RESOURCE_ID_IMAGE_MENUICON",
+                "file": "images/MenuImage.png"
+            },
             {
                 "type": "png",
                 "name": "RESOURCE_ID_IMAGE_BATTERIES",
@@ -27,7 +37,7 @@
                 "file": "fonts/DIGITAL_BOLD.TTF"
             },
             {
-                "characterRegex": "[-A-Z0-9:\\s]",
+                "characterRegex": "[-/0-9.]",
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITAL_25",
                 "file": "fonts/DIGITAL_BOLD.TTF"
@@ -37,12 +47,6 @@
                 "type": "font",
                 "name": "RESOURCE_ID_FONT_DIGITAL_35",
                 "file": "fonts/DIGITAL_BOLD.TTF"
-            },
-            {
-                "menuIcon": true,
-                "type": "png",
-                "name": "RESOURCE_ID_IMAGE_MENUICON",
-                "file": "images/MenuImage.png"
             },
             {
                 "type": "png",
