@@ -1,63 +1,63 @@
 {
-    "versionLabel": "1.4",
-    "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
-    "appKeys": {
-        "inv": 1,
-        "datefmt": 3,
-        "vibr": 2
-    },
-    "longName": "Casio WV-58DE",
-    "versionCode": 5,
-    "capabilities": [
-        "configurable"
-    ],
-    "shortName": "Casio WV-58DE",
-    "companyName": "PanicMan",
+    "versionLabel": "1.5",
     "watchapp": {
         "watchface": true
     },
+    "capabilities": [
+        "configurable"
+    ],
+    "appKeys": {
+        "datefmt": 3,
+        "inv": 1,
+        "vibr": 2
+    },
+    "longName": "Casio WV-58DE",
+    "shortName": "Casio WV-58DE",
     "resources": {
         "media": [
             {
                 "menuIcon": true,
+                "file": "images/MenuImage.png",
                 "type": "png",
-                "name": "RESOURCE_ID_IMAGE_MENUICON",
-                "file": "images/MenuImage.png"
+                "name": "RESOURCE_ID_IMAGE_MENUICON"
             },
             {
+                "file": "images/Battery.png",
                 "type": "png",
-                "name": "RESOURCE_ID_IMAGE_BATTERIES",
-                "file": "images/Battery.png"
+                "name": "RESOURCE_ID_IMAGE_BATTERIES"
             },
             {
                 "trackingAdjust": -3,
+                "file": "fonts/DIGITAL_BOLD.TTF",
                 "characterRegex": "[0-9:]",
                 "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_55",
-                "file": "fonts/DIGITAL_BOLD.TTF"
+                "name": "RESOURCE_ID_FONT_DIGITAL_55"
             },
             {
+                "file": "fonts/DIGITAL_BOLD.TTF",
                 "characterRegex": "[-/0-9.]",
                 "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_25",
-                "file": "fonts/DIGITAL_BOLD.TTF"
+                "name": "RESOURCE_ID_FONT_DIGITAL_25"
             },
             {
+                "file": "fonts/DIGITAL_BOLD.TTF",
                 "characterRegex": "[A-Z]",
                 "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_35",
-                "file": "fonts/DIGITAL_BOLD.TTF"
+                "name": "RESOURCE_ID_FONT_DIGITAL_35"
             },
             {
+                "file": "images/Radio.png",
                 "type": "png",
-                "name": "RESOURCE_ID_IMAGE_RADIO",
-                "file": "images/Radio.png"
+                "name": "RESOURCE_ID_IMAGE_RADIO"
             },
             {
+                "file": "images/Background.png",
                 "type": "png",
-                "name": "RESOURCE_ID_IMAGE_BACKGROUND",
-                "file": "images/Background.png"
+                "name": "RESOURCE_ID_IMAGE_BACKGROUND"
             }
         ]
-    }
+    },
+    "versionCode": 5,
+    "companyName": "PanicMan",
+    "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd"
 }

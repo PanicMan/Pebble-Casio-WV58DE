@@ -60,38 +60,6 @@ void bluetooth_connection_handler(bool connected)
 	layer_set_hidden(bitmap_layer_get_layer(radio_layer), connected != true);
 }
 //-----------------------------------------------------------------------------------------------------------------------
-void on_animation_stopped(Animation *anim, bool finished, void *context)
-{
-    //Free the memoery used by the Animation
-    property_animation_destroy((PropertyAnimation*)anim);
-}
-//-----------------------------------------------------------------------------------------------------------------------
-void animate_layer(Layer *layer, GRect *start, GRect *finish, int duration, int delay)
-{
-    //Declare animation
-    PropertyAnimation *anim = property_animation_create_layer_frame(layer, start, finish);
-     
-    //Set characteristics
-    animation_set_duration((Animation*) anim, duration);
-    animation_set_delay((Animation*) anim, delay);
-	
-	//Set curve for in/out
-	if (finish->origin.x > 0)
-		animation_set_curve((Animation*) anim, AnimationCurveEaseOut);
-	else
-		animation_set_curve((Animation*) anim, AnimationCurveEaseIn);
-	
-    //Set stopped handler to free memory
-    AnimationHandlers handlers = {
-        //The reference to the stopped handler is the only one in the array
-        .stopped = (AnimationStoppedHandler) on_animation_stopped
-    };
-    animation_set_handlers((Animation*) anim, handlers, NULL);
-     
-    //Start animation
-    animation_schedule((Animation*) anim);
-}
-//-----------------------------------------------------------------------------------------------------------------------
 void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 {
 	int seconds = tick_time->tm_sec;
@@ -99,27 +67,6 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 	strftime(ssBuffer, sizeof(ssBuffer), "%S", tick_time);
 	text_layer_set_text(ss_layer, ssBuffer);
 
-	//Animate Hour/Min
-	if(seconds == 59)
-	{
-		//Slide offscreen to the left
-		GRect start = GRect(2, 50, 110, 75);
-		GRect finish = GRect(-110, 50, 110, 75);
-		animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
-	}
-	else if(seconds < 5 || units_changed == MINUTE_UNIT)
-	{
-		//Workaround, hangs sometimes outside the screen
-		GRect rc = layer_get_frame(text_layer_get_layer(hhmm_layer));
-		if (rc.origin.x == -110)
-		{
-			//Slide onscreen from the left
-			GRect start = GRect(-110, 50, 110, 75);
-			GRect finish = GRect(2, 50, 110, 75);
-			animate_layer(text_layer_get_layer(hhmm_layer), &start, &finish, 200, 600);
-		}
-	}
-	
 	if(seconds == 0 || units_changed == MINUTE_UNIT)
 	{
 		if(clock_is_24h_style())
@@ -169,7 +116,7 @@ static void update_configuration(void)
     if (persist_exists(CONFIG_KEY_DATEFMT))
 		CfgData.datefmt = (int16_t)persist_read_int(CONFIG_KEY_DATEFMT);
 	else	
-		CfgData.datefmt = 0;
+		CfgData.datefmt = 1;
 
 	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, vibr:%d, datefmt:%d", CfgData.inv, CfgData.vibr, CfgData.datefmt);
 	
@@ -268,7 +215,7 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(yyyy_layer));
         
 	//HOUR+MINUTE layer
-	hhmm_layer = text_layer_create(GRect(-110, 50, 110, 75));
+	hhmm_layer = text_layer_create(GRect(2, 50, 110, 75));
 	text_layer_set_background_color(hhmm_layer, GColorClear);
 	text_layer_set_text_color(hhmm_layer, GColorBlack);
 	text_layer_set_text_alignment(hhmm_layer, GTextAlignmentCenter);
