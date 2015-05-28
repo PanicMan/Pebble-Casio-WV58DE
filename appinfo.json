@@ -1,63 +1,85 @@
 {
-    "versionLabel": "1.5",
-    "watchapp": {
-        "watchface": true
-    },
-    "capabilities": [
-        "configurable"
-    ],
     "appKeys": {
+        "JS_READY": 0,
+        "cityid": 6,
         "datefmt": 3,
         "inv": 1,
-        "vibr": 2
+        "units": 5,
+        "vibr": 2,
+        "vibr_bt": 7,
+        "w_icon": 92,
+        "w_temp": 91,
+        "weather": 4
     },
+    "capabilities": [
+        "location",
+        "configurable"
+    ],
+    "companyName": "PanicMan",
     "longName": "Casio WV-58DE",
-    "shortName": "Casio WV-58DE",
+    "projectType": "native",
     "resources": {
         "media": [
             {
-                "menuIcon": true,
-                "file": "images/MenuImage.png",
-                "type": "png",
-                "name": "RESOURCE_ID_IMAGE_MENUICON"
-            },
-            {
                 "file": "images/Battery.png",
-                "type": "png",
-                "name": "RESOURCE_ID_IMAGE_BATTERIES"
+                "name": "IMAGE_BATTERIES",
+                "type": "png"
             },
             {
-                "trackingAdjust": -3,
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "characterRegex": "[0-9:]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_55"
-            },
-            {
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "characterRegex": "[-/0-9.]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_25"
-            },
-            {
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "characterRegex": "[A-Z]",
-                "type": "font",
-                "name": "RESOURCE_ID_FONT_DIGITAL_35"
-            },
-            {
-                "file": "images/Radio.png",
-                "type": "png",
-                "name": "RESOURCE_ID_IMAGE_RADIO"
+                "file": "fonts/Climacons.ttf",
+                "name": "FONT_WEATHER_32",
+                "type": "font"
             },
             {
                 "file": "images/Background.png",
-                "type": "png",
-                "name": "RESOURCE_ID_IMAGE_BACKGROUND"
+                "name": "IMAGE_BACKGROUND",
+                "type": "png"
+            },
+            {
+                "file": "images/Radio.png",
+                "name": "IMAGE_RADIO",
+                "type": "png"
+            },
+            {
+                "file": "images/MenuImage.png",
+                "menuIcon": true,
+                "name": "RESOURCE_ID_IMAGE_MENUICON",
+                "type": "png"
+            },
+            {
+                "characterRegex": "[0-9:]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_55",
+                "trackingAdjust": -3,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[-/0-9.]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_25",
+                "trackingAdjust": -1,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[A-Z]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_35",
+                "type": "font"
             }
         ]
     },
-    "versionCode": 5,
-    "companyName": "PanicMan",
-    "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd"
+    "sdkVersion": "3",
+    "shortName": "Casio WV-58DE",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
+    "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
+    "versionLabel": "2.0",
+    "watchapp": {
+        "watchface": true
+    }
 }

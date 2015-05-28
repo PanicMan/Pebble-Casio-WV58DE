@@ -1,37 +1,69 @@
 #include <pebble.h>
+#include "effect_layer.h"
 
 enum ConfigKeys {
-	CONFIG_KEY_INV=1,
-	CONFIG_KEY_VIBR=2,
-	CONFIG_KEY_DATEFMT=3
+	JS_READY=0,
+	C_INV=1,
+	C_VIBR=2,
+	C_DATEFMT=3,
+	C_WEATHER=4,
+	C_UNITS=5,
+	C_CKEY=6,
+	C_VIBR_BT=7,
+	W_TIME=90,
+	W_TEMP=91,
+	W_ICON=92
 };
 
 typedef struct {
 	bool inv;
-	bool vibr;
+	bool vibr, vibr_bt;
 	uint16_t datefmt;
-} CfgDta_t;
+	bool isdst, isAM;
+	bool weather;
+	bool isunit;
+	uint32_t cityid;
+	uint32_t w_time;
+	int16_t w_temp;
+	char w_icon[2];
+	bool w_UpdateRetry;
+	bool s_Charging;
+} __attribute__((__packed__)) CfgDta_t;
 
-static const uint32_t const segments[] = {100, 100, 100};
-static const VibePattern vibe_pat = {
-	.durations = segments,
-	.num_segments = ARRAY_LENGTH(segments),
+static CfgDta_t CfgData = {
+	.inv = false,
+	.vibr = false,
+	.vibr_bt = true,
+	.datefmt = 1,
+	.isdst = false,
+	.isAM = false,
+	.weather = true,
+	.isunit = false,
+	.cityid = 0,
+	.w_time = 0,
+	.w_temp = 0,
+	.w_icon = " ",
+	.w_UpdateRetry = false,
+	.s_Charging = false
 };
 
 Window *window;
+Layer *background_layer; 
 TextLayer *ddmm_layer, *yyyy_layer, *hhmm_layer, *ss_layer, *wd_layer;
-BitmapLayer *background_layer, *radio_layer, *battery_layer, *dst_layer;
+BitmapLayer *radio_layer, *battery_layer;
+
+#ifdef PBL_COLOR
+EffectLayer *eff_layer; 
+#else
 InverterLayer *inv_layer;
+#endif
 
-static GBitmap *background, *radio, *batteryAll;
-static GFont digitS, digitM, digitL;
-static CfgDta_t CfgData;
+static GBitmap *background, *radio, *batteryAll, *batteryAkt;
+static GFont digitS, digitM, digitL, WeatherF;
 
-char ddmmBuffer[] = "00-00";
-char yyyyBuffer[] = "0000";
-char hhmmBuffer[] = "00:00";
-char ssBuffer[] = "00";
-char wdBuffer[] = "XXX";
+char ddmmBuffer[] = "00-00", yyyyBuffer[] = "0000", hhmmBuffer[] = "00:00", ssBuffer[] = "00", wdBuffer[] = "XXX";
+static uint8_t aktBatt, aktBattAnim;
+static AppTimer *timer_weather, *timer_batt;
 
 //-----------------------------------------------------------------------------------------------------------------------
 char *upcase(char *str) {
@@ -43,26 +75,112 @@ char *upcase(char *str) {
     return str;
 }
 //-----------------------------------------------------------------------------------------------------------------------
+static void timerCallbackBattery(void *data) 
+{
+	if (CfgData.s_Charging)
+	{
+		int nImage = 10 - (aktBattAnim / 10);
+		
+		bitmap_layer_set_bitmap(battery_layer, NULL);
+		gbitmap_destroy(batteryAkt);
+		batteryAkt = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 10*nImage, 20, 10));
+		bitmap_layer_set_bitmap(battery_layer, batteryAkt);
+
+		aktBattAnim += 10;
+		if (aktBattAnim > 100)
+			aktBattAnim = aktBatt;
+		timer_batt = app_timer_register(1000, timerCallbackBattery, NULL);
+	}
+}
+//-----------------------------------------------------------------------------------------------------------------------
 void battery_state_service_handler(BatteryChargeState charge_state) 
 {
 	int nImage = 0;
-	if (charge_state.is_charging)
-		nImage = 10;
-	else 
-		nImage = 10 - (charge_state.charge_percent / 10);
+	aktBatt = charge_state.charge_percent;
 	
-	GRect sub_rect = GRect(0, 10*nImage, 20, 10);
-	bitmap_layer_set_bitmap(battery_layer, gbitmap_create_as_sub_bitmap(batteryAll, sub_rect));
+	if (charge_state.is_charging)
+	{
+		if (!CfgData.s_Charging)
+		{
+			nImage = 10;
+			CfgData.s_Charging = true;
+			aktBattAnim = aktBatt;
+			timer_batt = app_timer_register(1000, timerCallbackBattery, NULL);
+		}
+	}
+	else
+	{
+		nImage = 10 - (aktBatt / 10);
+		CfgData.s_Charging = false;
+	}
+	
+	bitmap_layer_set_bitmap(battery_layer, NULL);
+	gbitmap_destroy(batteryAkt);
+	batteryAkt = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 10*nImage, 20, 10));
+	bitmap_layer_set_bitmap(battery_layer, batteryAkt);
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void bluetooth_connection_handler(bool connected)
 {
 	layer_set_hidden(bitmap_layer_get_layer(radio_layer), connected != true);
+	if (!connected && CfgData.vibr_bt)
+		vibes_enqueue_custom_pattern( (VibePattern) {
+			.durations = (uint32_t []) {100, 100, 100, 100, 400, 400, 100, 100, 100},
+				.num_segments = 9
+		});
+}
+//-----------------------------------------------------------------------------------------------------------------------
+static void background_layer_update_callback(Layer *layer, GContext* ctx) 
+{
+	graphics_context_set_text_color(ctx, GColorBlack);
+
+	//Background
+	GSize bg_size = gbitmap_get_bounds(background).size;
+	graphics_draw_bitmap_in_rect(ctx, background, GRect(0, 0, bg_size.w, bg_size.h));
+
+	//DD
+	GBitmap *bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 115, 12, 5));
+	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 12 : 48, 5, 12, 5));
+	gbitmap_destroy(bmpTmp);
+	
+	//MM
+	bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 120, 12, 5));
+	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 48 : 12, 5, 12, 5));
+	gbitmap_destroy(bmpTmp);
+	
+	//DST
+	if (CfgData.isdst)
+	{
+		bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 110, 12, 5));
+		graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(116, 103, 12, 5));
+		gbitmap_destroy(bmpTmp);
+	}
+	
+	//Weather
+	if (CfgData.weather && CfgData.w_time != 0)
+	{
+		char sTemp[] = "-999";
+		snprintf(sTemp, sizeof(sTemp), "%d", (int16_t)((double)CfgData.w_temp * (CfgData.isunit ? 1.8 : 1) + (CfgData.isunit ? 32 : 0))); //°C or °F?
+		graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40, 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
+		graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34, 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+
+		GRect rc = GRect(95, 30, 34, 34);
+		GSize sz = graphics_text_layout_get_content_size(CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
+		graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+	}
+	
+	//AM/PM
+	if(!clock_is_24h_style())
+	{
+		bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(CfgData.isAM ? 0 : 4, 125, 4, 5));
+		graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(6, 65, 4, 5));
+		gbitmap_destroy(bmpTmp);
+	}
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 {
-	int seconds = tick_time->tm_sec;
+	uint8_t seconds = tick_time->tm_sec;
 
 	strftime(ssBuffer, sizeof(ssBuffer), "%S", tick_time);
 	text_layer_set_text(ss_layer, ssBuffer);
@@ -72,7 +190,10 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		if(clock_is_24h_style())
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%H:%M", tick_time);
 		else
+		{
+			CfgData.isAM = tick_time->tm_hour < 13;
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%I:%M", tick_time);
+		}
 		
 		//strcpy(hhmmBuffer, "22:22");
 		text_layer_set_text(hhmm_layer, hhmmBuffer);
@@ -93,43 +214,105 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 
 		//Check DST at 4h at morning
 		if ((tick_time->tm_hour == 4 && tick_time->tm_min == 0) || units_changed == MINUTE_UNIT)
-			layer_set_hidden(bitmap_layer_get_layer(dst_layer), tick_time->tm_isdst != 1);
+		{
+			CfgData.isdst = (tick_time->tm_isdst > 0);
+			layer_mark_dirty(background_layer);
+		}
 		
 		//Hourly vibrate
 		if (CfgData.vibr && tick_time->tm_min == 0)
-			vibes_enqueue_custom_pattern(vibe_pat); 	
+			vibes_double_pulse();
+		
+		//Update Background Layer
+		layer_mark_dirty(background_layer);
+	}
+}
+//-----------------------------------------------------------------------------------------------------------------------
+static bool update_weather() 
+{
+	DictionaryIterator *iter;
+	app_message_outbox_begin(&iter);
+
+	if (iter == NULL) 
+	{
+		app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Iter is NULL!");
+		return false;
+	};
+
+	Tuplet val_ckey = TupletInteger(C_CKEY, CfgData.cityid);
+	dict_write_tuplet(iter, &val_ckey);
+	dict_write_end(iter);
+
+	app_message_outbox_send();
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Send message with data: c_ckey=%d", (int)CfgData.cityid);
+	return true;
+}
+//-----------------------------------------------------------------------------------------------------------------------
+static void timerCallbackWeather(void *data) 
+{
+	if (CfgData.w_UpdateRetry && !layer_get_hidden(bitmap_layer_get_layer(radio_layer)))
+	{
+		update_weather();
+		timer_weather = app_timer_register(30000, timerCallbackWeather, NULL); //Try again in 30 sec
+	}
+	else
+	{
+		CfgData.w_UpdateRetry = true;
+		timer_weather = app_timer_register(60000*60, timerCallbackWeather, NULL); //1h static update
 	}
 }
 //-----------------------------------------------------------------------------------------------------------------------
 static void update_configuration(void)
 {
-    if (persist_exists(CONFIG_KEY_INV))
-		CfgData.inv = persist_read_bool(CONFIG_KEY_INV);
-	else	
-		CfgData.inv = false;
+    if (persist_exists(C_INV))
+		CfgData.inv = persist_read_bool(C_INV);
 	
-    if (persist_exists(CONFIG_KEY_VIBR))
-		CfgData.vibr = persist_read_bool(CONFIG_KEY_VIBR);
-	else	
-		CfgData.vibr = false;
+    if (persist_exists(C_VIBR))
+		CfgData.vibr = persist_read_bool(C_VIBR);
 	
-    if (persist_exists(CONFIG_KEY_DATEFMT))
-		CfgData.datefmt = (int16_t)persist_read_int(CONFIG_KEY_DATEFMT);
-	else	
-		CfgData.datefmt = 1;
+    if (persist_exists(C_VIBR_BT))
+		CfgData.vibr_bt = persist_read_bool(C_VIBR_BT);
+	
+    if (persist_exists(C_DATEFMT))
+		CfgData.datefmt = (int16_t)persist_read_int(C_DATEFMT);
+	
+    if (persist_exists(C_WEATHER))
+		CfgData.weather = persist_read_bool(C_WEATHER);
+	
+    if (persist_exists(C_UNITS))
+		CfgData.isunit = persist_read_bool(C_UNITS);
+	
+    if (persist_exists(C_CKEY))
+		CfgData.cityid = persist_read_int(C_CKEY);
+	
+    if (persist_exists(W_TIME))
+		CfgData.w_time = persist_read_int(W_TIME);
+	
+    if (persist_exists(W_TEMP))
+		CfgData.w_temp = persist_read_int(W_TEMP);
 
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, vibr:%d, datefmt:%d", CfgData.inv, CfgData.vibr, CfgData.datefmt);
+    if (persist_exists(W_ICON))
+		persist_read_string(W_ICON, CfgData.w_icon, sizeof(CfgData.w_icon));
+
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Weather Data: w_time:%d, w_temp:%d, w_icon:%s", (int)CfgData.w_time, CfgData.w_temp, CfgData.w_icon);
 	
 	Layer *window_layer = window_get_root_layer(window);
 
 	//Inverter Layer
+#ifdef PBL_COLOR
+	layer_remove_from_parent(effect_layer_get_layer(eff_layer));
+	if (CfgData.inv)
+		layer_add_child(window_layer, effect_layer_get_layer(eff_layer));
+#else
 	layer_remove_from_parent(inverter_layer_get_layer(inv_layer));
 	if (CfgData.inv)
 		layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
+#endif
 	
 	//Get a time structure so that it doesn't start blank
-	time_t temp = time(NULL);
-	struct tm *t = localtime(&temp);
+	time_t tmAkt = time(NULL);
+	struct tm *t = localtime(&tmAkt);
 
 	//Manually call the tick handler when the window is loading
 	tick_handler(t, MINUTE_UNIT);
@@ -141,32 +324,70 @@ static void update_configuration(void)
 	//Set Bluetooth state
 	bool connected = bluetooth_connection_service_peek();
 	bluetooth_connection_handler(connected);
+	
+	//Update Weather
+	if (CfgData.w_UpdateRetry && CfgData.weather)
+	{
+		if (CfgData.w_time == 0 || (tmAkt - CfgData.w_time) > 60*60)
+			timer_weather = app_timer_register(100, timerCallbackWeather, NULL);
+		else
+			timer_weather = app_timer_register((60*60-(tmAkt-CfgData.w_time))*1000, timerCallbackWeather, NULL);
+	}
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void in_received_handler(DictionaryIterator *received, void *ctx)
 {
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "enter in_received_handler");
-    
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Received Data: ");
+    time_t tmAkt = time(NULL);
+	
 	Tuple *akt_tuple = dict_read_first(received);
     while (akt_tuple)
     {
-        app_log(APP_LOG_LEVEL_DEBUG,
-                __FILE__,
-                __LINE__,
-                "KEY %d=%s", (int16_t)akt_tuple->key,
-                akt_tuple->value->cstring);
+		int intVal = atoi(akt_tuple->value->cstring);
+        app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "KEY %d=%d/%s/%d", (int16_t)akt_tuple->key, akt_tuple->value->int16 ,akt_tuple->value->cstring, intVal);
 
-		if (akt_tuple->key == CONFIG_KEY_INV)
-			persist_write_bool(CONFIG_KEY_INV, strcmp(akt_tuple->value->cstring, "yes") == 0);
-
-		if (akt_tuple->key == CONFIG_KEY_VIBR)
-			persist_write_bool(CONFIG_KEY_VIBR, strcmp(akt_tuple->value->cstring, "yes") == 0);
-		
-		if (akt_tuple->key == CONFIG_KEY_DATEFMT)
-			persist_write_int(CONFIG_KEY_DATEFMT, 
+		switch (akt_tuple->key)	{
+		case JS_READY:
+			CfgData.w_UpdateRetry = true;
+			break;
+		case C_INV:
+			persist_write_bool(C_INV, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_VIBR:
+			persist_write_bool(C_VIBR, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_VIBR_BT:
+			persist_write_bool(C_VIBR_BT, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_DATEFMT:
+			persist_write_int(C_DATEFMT, 
 				strcmp(akt_tuple->value->cstring, "fra") == 0 ? 1 : 
 				strcmp(akt_tuple->value->cstring, "eng") == 0 ? 2 : 
 				strcmp(akt_tuple->value->cstring, "usa") == 0 ? 3 : 0);
+			break;
+		case C_WEATHER:
+			persist_write_bool(C_WEATHER, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_UNITS:
+			persist_write_bool(C_UNITS, strcmp(akt_tuple->value->cstring, "f") == 0);
+			break;
+		case C_CKEY:
+			persist_write_int(C_CKEY, intVal);
+			if ((int)CfgData.cityid != intVal) //City Changed, force reload weather
+			{
+				CfgData.w_UpdateRetry = true;
+				persist_write_int(W_TIME, 0);
+			}
+			break;
+		case W_TEMP:
+			persist_write_int(W_TIME, tmAkt);
+			persist_write_int(W_TEMP, akt_tuple->value->int16);
+			CfgData.w_UpdateRetry = false; //Update successful, usual update wait time
+			break;
+		case W_ICON:
+			persist_write_string(W_ICON, akt_tuple->value->cstring);
+			break;
+		}
 		
 		akt_tuple = dict_read_next(received);
 	}
@@ -185,19 +406,22 @@ void in_dropped_handler(AppMessageResult reason, void *ctx)
 //-----------------------------------------------------------------------------------------------------------------------
 void window_load(Window *window)
 {
+	background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND);
+	batteryAll = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERIES);
+	radio = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_RADIO);
+	
+	digitS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DIGITAL_25));
+	digitM = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DIGITAL_35));
+	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DIGITAL_55));
+ 	WeatherF = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHER_32));
+ 
 	Layer *window_layer = window_get_root_layer(window);
 
 	//Init Background
-	background = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_BACKGROUND);
-	background_layer = bitmap_layer_create(GRect(0, 0, 144, 168));
-	bitmap_layer_set_background_color(background_layer, GColorClear);
-	bitmap_layer_set_bitmap(background_layer, background);
-	layer_add_child(window_layer, bitmap_layer_get_layer(background_layer));
-	
-	digitS = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_25));
-	digitM = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_35));
-	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_RESOURCE_ID_FONT_DIGITAL_55));
-  
+	background_layer = layer_create(GRect(0, 0, 144, 168));
+	layer_set_update_proc(background_layer, background_layer_update_callback);
+	layer_add_child(window_layer, background_layer);
+
 	//DAY+MONTH layer
 	ddmm_layer = text_layer_create(GRect(2, 5, 70, 32));
 	text_layer_set_background_color(ddmm_layer, GColorClear);
@@ -215,7 +439,7 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(yyyy_layer));
         
 	//HOUR+MINUTE layer
-	hhmm_layer = text_layer_create(GRect(2, 50, 110, 75));
+	hhmm_layer = text_layer_create(GRect(3, 53, 110, 75));
 	text_layer_set_background_color(hhmm_layer, GColorClear);
 	text_layer_set_text_color(hhmm_layer, GColorBlack);
 	text_layer_set_text_alignment(hhmm_layer, GTextAlignmentCenter);
@@ -223,7 +447,7 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(hhmm_layer));
         
 	//SECOND layer
-	ss_layer = text_layer_create(GRect(111, 55, 30, 30));
+	ss_layer = text_layer_create(GRect(111, 58, 30, 30));
 	text_layer_set_background_color(ss_layer, GColorClear);
 	text_layer_set_text_color(ss_layer, GColorBlack);
 	text_layer_set_text_alignment(ss_layer, GTextAlignmentCenter);
@@ -231,19 +455,12 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(ss_layer));
         
 	//Init battery
-	batteryAll = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_BATTERIES);
 	battery_layer = bitmap_layer_create(GRect(116, 90, 20, 10)); 
 	bitmap_layer_set_background_color(battery_layer, GColorClear);
 	layer_add_child(window_layer, bitmap_layer_get_layer(battery_layer));
 
-	//DST layer, have to be after battery, uses its image
-	dst_layer = bitmap_layer_create(GRect(123, 52, 12, 5));
-	bitmap_layer_set_background_color(dst_layer, GColorClear);
-	bitmap_layer_set_bitmap(dst_layer, gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 110, 12, 5)));
-	layer_add_child(window_layer, bitmap_layer_get_layer(dst_layer));
-        
 	//WEEKDAY layer
-	wd_layer = text_layer_create(GRect(3, 125, 84, 40));
+	wd_layer = text_layer_create(GRect(3, 124, 84, 40));
 	text_layer_set_background_color(wd_layer, GColorClear);
 	text_layer_set_text_color(wd_layer, GColorBlack);
 	text_layer_set_text_alignment(wd_layer, GTextAlignmentCenter);
@@ -251,15 +468,23 @@ void window_load(Window *window)
 	layer_add_child(window_layer, text_layer_get_layer(wd_layer));
         
 	//Init bluetooth radio
-	radio = gbitmap_create_with_resource(RESOURCE_ID_RESOURCE_ID_IMAGE_RADIO);
 	radio_layer = bitmap_layer_create(GRect(106, 130, 31, 33));
 	bitmap_layer_set_background_color(radio_layer, GColorClear);
 	bitmap_layer_set_bitmap(radio_layer, radio);
+#ifdef PBL_COLOR
+	bitmap_layer_set_compositing_mode(radio_layer, GCompOpSet);
+#else
 	bitmap_layer_set_compositing_mode(radio_layer, GCompOpAnd);
+#endif
 	layer_add_child(window_layer, bitmap_layer_get_layer(radio_layer));
 	
 	//Init inverter_layer
+#ifdef PBL_COLOR
+	eff_layer = effect_layer_create(GRect(0, 0, 144, 168));
+	effect_layer_add_effect(eff_layer, effect_invert, NULL);
+#else
 	inv_layer = inverter_layer_create(GRect(0, 0, 144, 168));
+#endif
 
 	//Update Configuration
 	update_configuration();
@@ -278,20 +503,25 @@ void window_unload(Window *window)
 	fonts_unload_custom_font(digitS);
 	fonts_unload_custom_font(digitM);
 	fonts_unload_custom_font(digitL);
+	fonts_unload_custom_font(WeatherF);
 	
 	//Destroy GBitmaps
+	gbitmap_destroy(batteryAkt);
 	gbitmap_destroy(batteryAll);
 	gbitmap_destroy(radio);
 	gbitmap_destroy(background);
 
 	//Destroy BitmapLayers
-	bitmap_layer_destroy(dst_layer);
 	bitmap_layer_destroy(battery_layer);
 	bitmap_layer_destroy(radio_layer);
-	bitmap_layer_destroy(background_layer);
+	layer_destroy(background_layer);
 	
 	//Destroy Inverter Layer
+#ifdef PBL_COLOR
+	effect_layer_destroy(eff_layer);
+#else
 	inverter_layer_destroy(inv_layer);
+#endif
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void handle_init(void) 
@@ -318,6 +548,8 @@ void handle_init(void)
 //-----------------------------------------------------------------------------------------------------------------------
 void handle_deinit(void) 
 {
+	app_timer_cancel(timer_weather);
+	app_timer_cancel(timer_batt);
 	app_message_deregister_callbacks();
 	tick_timer_service_unsubscribe();
 	battery_state_service_unsubscribe();
