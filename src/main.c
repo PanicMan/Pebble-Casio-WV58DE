@@ -47,16 +47,11 @@ static CfgDta_t CfgData = {
 	.s_Charging = false
 };
 
-Window *window;
+Window *window, *sec_window;
 Layer *background_layer; 
 TextLayer *ddmm_layer, *yyyy_layer, *hhmm_layer, *ss_layer, *wd_layer;
 BitmapLayer *radio_layer, *battery_layer;
-
-#ifdef PBL_COLOR
-EffectLayer *eff_layer; 
-#else
-InverterLayer *inv_layer;
-#endif
+InverterLayer *inv_layer, *sec_inv_layer;
 
 static GBitmap *background, *radio, *batteryAll, *batteryAkt;
 static GFont digitS, digitM, digitL, WeatherF;
@@ -75,6 +70,27 @@ char *upcase(char *str) {
     return str;
 }
 //-----------------------------------------------------------------------------------------------------------------------
+static void update_all()
+{
+	if (window_stack_get_top_window() == sec_window)
+	{
+		Layer *window_layer = window_get_root_layer(window);
+		layer_remove_from_parent(text_layer_get_layer(ss_layer));
+		layer_add_child(window_layer, text_layer_get_layer(ss_layer));	
+		layer_remove_from_parent(inverter_layer_get_layer(inv_layer));
+		if (CfgData.inv)
+			layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
+		window_stack_pop(false);
+	}
+}
+//-----------------------------------------------------------------------------------------------------------------------
+static void secwnd_update_proc(Layer *layer, GContext *ctx) 
+{
+	//app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Second Windows Layer Update");
+	graphics_context_set_fill_color(ctx, GColorWhite);
+	graphics_fill_rect(ctx, GRect(114, 66, 25, 18), 0, GCornerNone);
+}
+//-----------------------------------------------------------------------------------------------------------------------
 static void timerCallbackBattery(void *data) 
 {
 	if (CfgData.s_Charging)
@@ -85,6 +101,7 @@ static void timerCallbackBattery(void *data)
 		gbitmap_destroy(batteryAkt);
 		batteryAkt = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 10*nImage, 20, 10));
 		bitmap_layer_set_bitmap(battery_layer, batteryAkt);
+		update_all();
 
 		aktBattAnim += 10;
 		if (aktBattAnim > 100)
@@ -123,6 +140,8 @@ void battery_state_service_handler(BatteryChargeState charge_state)
 void bluetooth_connection_handler(bool connected)
 {
 	layer_set_hidden(bitmap_layer_get_layer(radio_layer), connected != true);
+	update_all();
+		
 	if (!connected && CfgData.vibr_bt)
 		vibes_enqueue_custom_pattern( (VibePattern) {
 			.durations = (uint32_t []) {100, 100, 100, 100, 400, 400, 100, 100, 100},
@@ -132,6 +151,7 @@ void bluetooth_connection_handler(bool connected)
 //-----------------------------------------------------------------------------------------------------------------------
 static void background_layer_update_callback(Layer *layer, GContext* ctx) 
 {
+	//app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Background Layer Update");
 	graphics_context_set_text_color(ctx, GColorBlack);
 
 	//Background
@@ -157,6 +177,7 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 	}
 	
 	//Weather
+	GRect rc = GRect(95, 30, 34, 34);
 	if (CfgData.weather && CfgData.w_time != 0)
 	{
 		char sTemp[] = "-999";
@@ -164,9 +185,27 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 		graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40, 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
 		graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34, 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
-		GRect rc = GRect(95, 30, 34, 34);
 		GSize sz = graphics_text_layout_get_content_size(CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
-		graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+		if (strcmp(CfgData.w_icon, "-") == 0) //Simulate 
+		{
+			graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+			graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2+4, rc.origin.y+rc.size.h/2-sz.h/2-4, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+
+			//Fill front Cloud
+			GBitmap *fb = graphics_capture_frame_buffer(ctx);
+			uint8_t *fb_data =  gbitmap_get_data(fb);
+			uint16_t fb_bpr = gbitmap_get_bytes_per_row(fb);
+			fill4(fb_data, fb_bpr, 48, 112, get_pixel(fb_data, fb_bpr, 48, 112), get_pixel(fb_data, fb_bpr, 51, 109));
+			fill4(fb_data, fb_bpr, 53, 108, get_pixel(fb_data, fb_bpr, 53, 108), get_pixel(fb_data, fb_bpr, 51, 109));
+			graphics_release_frame_buffer(ctx, fb);
+		}
+		else
+			graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+	}
+	else
+	{
+		GSize sz = graphics_text_layout_get_content_size("h", WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
+		graphics_draw_text(ctx, "h", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 	}
 	
 	//AM/PM
@@ -191,7 +230,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%H:%M", tick_time);
 		else
 		{
-			CfgData.isAM = tick_time->tm_hour < 13;
+			CfgData.isAM = tick_time->tm_hour < 12;
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%I:%M", tick_time);
 		}
 		
@@ -224,12 +263,25 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 			vibes_double_pulse();
 		
 		//Update Background Layer
-		layer_mark_dirty(background_layer);
+		update_all();
+	}
+	else if (!window_stack_contains_window(sec_window))
+	{
+		Layer *sec_window_layer = window_get_root_layer(sec_window);
+		layer_remove_from_parent(text_layer_get_layer(ss_layer));
+		layer_add_child(sec_window_layer, text_layer_get_layer(ss_layer));	
+		layer_remove_from_parent(inverter_layer_get_layer(sec_inv_layer));
+		if (CfgData.inv)
+			layer_add_child(sec_window_layer, inverter_layer_get_layer(sec_inv_layer));
+		window_stack_push(sec_window, false);
 	}
 }
 //-----------------------------------------------------------------------------------------------------------------------
 static bool update_weather() 
 {
+	strcpy(CfgData.w_icon, "h");
+	layer_mark_dirty(background_layer);
+	
 	DictionaryIterator *iter;
 	app_message_outbox_begin(&iter);
 
@@ -300,15 +352,9 @@ static void update_configuration(void)
 	Layer *window_layer = window_get_root_layer(window);
 
 	//Inverter Layer
-#ifdef PBL_COLOR
-	layer_remove_from_parent(effect_layer_get_layer(eff_layer));
-	if (CfgData.inv)
-		layer_add_child(window_layer, effect_layer_get_layer(eff_layer));
-#else
 	layer_remove_from_parent(inverter_layer_get_layer(inv_layer));
 	if (CfgData.inv)
 		layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
-#endif
 	
 	//Get a time structure so that it doesn't start blank
 	time_t tmAkt = time(NULL);
@@ -479,12 +525,8 @@ void window_load(Window *window)
 	layer_add_child(window_layer, bitmap_layer_get_layer(radio_layer));
 	
 	//Init inverter_layer
-#ifdef PBL_COLOR
-	eff_layer = effect_layer_create(GRect(0, 0, 144, 168));
-	effect_layer_add_effect(eff_layer, effect_invert, NULL);
-#else
 	inv_layer = inverter_layer_create(GRect(0, 0, 144, 168));
-#endif
+	sec_inv_layer = inverter_layer_create(GRect(114, 66, 25, 18));
 
 	//Update Configuration
 	update_configuration();
@@ -517,11 +559,8 @@ void window_unload(Window *window)
 	layer_destroy(background_layer);
 	
 	//Destroy Inverter Layer
-#ifdef PBL_COLOR
-	effect_layer_destroy(eff_layer);
-#else
 	inverter_layer_destroy(inv_layer);
-#endif
+	inverter_layer_destroy(sec_inv_layer);
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void handle_init(void) 
@@ -533,6 +572,11 @@ void handle_init(void)
 	});
     window_stack_push(window, true);
 	
+	sec_window = window_create();
+	window_set_background_color(sec_window, GColorClear);
+	Layer *sec_window_layer = window_get_root_layer(sec_window);
+	layer_set_update_proc(sec_window_layer, secwnd_update_proc);
+
 	//Subscribe services
 	tick_timer_service_subscribe(SECOND_UNIT, (TickHandler)tick_handler);
 	battery_state_service_subscribe(&battery_state_service_handler);
@@ -554,6 +598,8 @@ void handle_deinit(void)
 	tick_timer_service_unsubscribe();
 	battery_state_service_unsubscribe();
 	bluetooth_connection_service_unsubscribe();
+
+	window_destroy(sec_window);
 	window_destroy(window);
 }
 //-----------------------------------------------------------------------------------------------------------------------

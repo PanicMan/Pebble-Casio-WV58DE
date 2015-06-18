@@ -25,6 +25,16 @@ uint8_t get_pixel(uint8_t *bitmap_data, int bytes_per_row, int y, int x) {
   #endif
 }
  
+void fill4(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t colorOld, uint8_t colorNew) {
+	if (get_pixel(bitmap_data, bytes_per_row, y, x) == colorOld) {
+		set_pixel(bitmap_data, bytes_per_row, y, x, colorNew);
+		fill4(bitmap_data, bytes_per_row, y + 1, x, colorOld, colorNew); // unten
+		fill4(bitmap_data, bytes_per_row, y - 1, x, colorOld, colorNew); // oben
+		fill4(bitmap_data, bytes_per_row, y, x - 1, colorOld, colorNew); // links
+		fill4(bitmap_data, bytes_per_row, y, x + 1, colorOld, colorNew); // rechts
+	}
+	return;
+}
 
 // THE EXTREMELY FAST LINE ALGORITHM Variation E (Addition Fixed Point PreCalc Small Display)
 // Small Display (256x256) resolution.
@@ -145,6 +155,190 @@ void effect_invert(GContext* ctx,  GRect position, void* param) {
  
   graphics_release_frame_buffer(ctx, fb);          
           
+}
+
+// invert black and white only (leaves all other colors intact).
+void effect_invert_bw_only(GContext* ctx,  GRect position, void* param) {
+  //capturing framebuffer bitmap
+  GBitmap *fb = graphics_capture_frame_buffer(ctx);
+  uint8_t *bitmap_data =  gbitmap_get_data(fb);
+  int bytes_per_row = gbitmap_get_bytes_per_row(fb);
+
+#ifdef PBL_COLOR
+  GColor pixel;
+#endif
+  
+  for (int y = 0; y < position.size.h; y++) {
+     for (int x = 0; x < position.size.w; x++) {
+        #ifdef PBL_COLOR // on Basalt invert only black or white
+          pixel.argb = get_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x);
+          if (gcolor_equal(pixel, GColorBlack))
+            set_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x, GColorWhite.argb);
+          else if (gcolor_equal(pixel, GColorWhite))
+            set_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x, GColorBlack.argb);
+        #else // on Aplite since only 1 and 0 is returning, doing "not" by 1 - pixel
+          set_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x, 1 - get_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x));
+        #endif
+     }
+  }
+ 
+  graphics_release_frame_buffer(ctx, fb);          
+          
+}
+
+// invert brightness of colors (leaves hue more or less intact and does not apply to black and white).
+void effect_invert_brightness(GContext* ctx,  GRect position, void* param) {
+#ifdef PBL_COLOR
+  //capturing framebuffer bitmap
+  GBitmap *fb = graphics_capture_frame_buffer(ctx);
+  uint8_t *bitmap_data =  gbitmap_get_data(fb);
+  int bytes_per_row = gbitmap_get_bytes_per_row(fb);
+
+  GColor pixel;
+  GColor pixel_new;
+  
+  for (int y = 0; y < position.size.h; y++) {
+     for (int x = 0; x < position.size.w; x++) {
+         pixel.argb = get_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x);
+         
+         if (!gcolor_equal(pixel, GColorBlack) && !gcolor_equal(pixel, GColorWhite)) {
+           // Only apply if not black/white (add effect_invert_bw_only for that too)
+           
+           // Color spread is not even, so need to handcraft the opposing brightness of colors,
+           // which is probably subjective and open for improvement
+           if (gcolor_equal(pixel, GColorOxfordBlue))
+             pixel_new = GColorCeleste;
+           else if (gcolor_equal(pixel, GColorDukeBlue))
+             pixel_new = GColorVividCerulean;
+           else if (gcolor_equal(pixel, GColorBlue))
+             pixel_new = GColorPictonBlue;
+           else if (gcolor_equal(pixel, GColorDarkGreen))
+             pixel_new = GColorMintGreen;
+           else if (gcolor_equal(pixel, GColorMidnightGreen))
+             pixel_new = GColorMediumSpringGreen;
+           else if (gcolor_equal(pixel, GColorCobaltBlue))
+             pixel_new = GColorCyan;
+           else if (gcolor_equal(pixel, GColorBlueMoon))
+             pixel_new = GColorElectricBlue;
+           else if (gcolor_equal(pixel, GColorIslamicGreen))
+             pixel_new = GColorMalachite;
+           else if (gcolor_equal(pixel, GColorJaegerGreen))
+             pixel_new = GColorScreaminGreen;
+           else if (gcolor_equal(pixel, GColorTiffanyBlue))
+             pixel_new = GColorCadetBlue;
+           else if (gcolor_equal(pixel, GColorVividCerulean))
+             pixel_new = GColorDukeBlue;
+           else if (gcolor_equal(pixel, GColorGreen))
+             pixel_new = GColorMayGreen;
+           else if (gcolor_equal(pixel, GColorMalachite))
+             pixel_new = GColorIslamicGreen;
+           else if (gcolor_equal(pixel, GColorMediumSpringGreen))
+             pixel_new = GColorMidnightGreen;
+           else if (gcolor_equal(pixel, GColorCyan))
+             pixel_new = GColorCobaltBlue;
+           else if (gcolor_equal(pixel, GColorBulgarianRose))
+             pixel_new = GColorMelon;
+           else if (gcolor_equal(pixel, GColorImperialPurple))
+             pixel_new = GColorRichBrilliantLavender;
+           else if (gcolor_equal(pixel, GColorIndigo))
+             pixel_new = GColorLavenderIndigo;
+           else if (gcolor_equal(pixel, GColorElectricUltramarine))
+             pixel_new = GColorVeryLightBlue;
+           else if (gcolor_equal(pixel, GColorArmyGreen))
+             pixel_new = GColorBrass;
+           else if (gcolor_equal(pixel, GColorDarkGray))
+             pixel_new = GColorLightGray;
+           else if (gcolor_equal(pixel, GColorLiberty))
+             pixel_new = GColorBabyBlueEyes;
+           else if (gcolor_equal(pixel, GColorVeryLightBlue))
+             pixel_new = GColorElectricUltramarine;
+           else if (gcolor_equal(pixel, GColorKellyGreen))
+             pixel_new = GColorGreen;
+           else if (gcolor_equal(pixel, GColorMayGreen))
+             pixel_new = GColorMediumAquamarine;
+           else if (gcolor_equal(pixel, GColorCadetBlue))
+             pixel_new = GColorTiffanyBlue;
+           else if (gcolor_equal(pixel, GColorPictonBlue))
+             pixel_new = GColorBlue;
+           else if (gcolor_equal(pixel, GColorBrightGreen))
+             pixel_new = GColorIslamicGreen;
+           else if (gcolor_equal(pixel, GColorScreaminGreen))
+             pixel_new = GColorKellyGreen;
+           else if (gcolor_equal(pixel, GColorMediumAquamarine))
+             pixel_new = GColorMayGreen;
+           else if (gcolor_equal(pixel, GColorElectricBlue))
+             pixel_new = GColorBlueMoon;
+           else if (gcolor_equal(pixel, GColorDarkCandyAppleRed))
+             pixel_new = GColorMelon;
+           else if (gcolor_equal(pixel, GColorJazzberryJam))
+             pixel_new = GColorBrilliantRose;
+           else if (gcolor_equal(pixel, GColorPurple))
+             pixel_new = GColorShockingPink;
+           else if (gcolor_equal(pixel, GColorVividViolet))
+             pixel_new = GColorPurpureus;
+           else if (gcolor_equal(pixel, GColorWindsorTan))
+             pixel_new = GColorRoseVale;
+           else if (gcolor_equal(pixel, GColorRoseVale))
+             pixel_new = GColorWindsorTan;
+           else if (gcolor_equal(pixel, GColorPurpureus))
+             pixel_new = GColorVividViolet;
+           else if (gcolor_equal(pixel, GColorLavenderIndigo))
+             pixel_new = GColorIndigo;
+           else if (gcolor_equal(pixel, GColorLimerick))
+             pixel_new = GColorPastelYellow;
+           else if (gcolor_equal(pixel, GColorBrass))
+             pixel_new = GColorArmyGreen;
+           else if (gcolor_equal(pixel, GColorLightGray))
+             pixel_new = GColorDarkGray;
+           else if (gcolor_equal(pixel, GColorBabyBlueEyes))
+             pixel_new = GColorLiberty;
+           else if (gcolor_equal(pixel, GColorSpringBud))
+             pixel_new = GColorDarkGreen;
+           else if (gcolor_equal(pixel, GColorInchworm))
+             pixel_new = GColorMidnightGreen;
+           else if (gcolor_equal(pixel, GColorMintGreen))
+             pixel_new = GColorDarkGreen;
+           else if (gcolor_equal(pixel, GColorCeleste))
+             pixel_new = GColorOxfordBlue;
+           else if (gcolor_equal(pixel, GColorRed))
+             pixel_new = GColorSunsetOrange;
+           else if (gcolor_equal(pixel, GColorFolly))
+             pixel_new = GColorMelon;
+           else if (gcolor_equal(pixel, GColorFashionMagenta))
+             pixel_new = GColorMagenta ;
+           else if (gcolor_equal(pixel, GColorMagenta))
+             pixel_new = GColorFashionMagenta;
+           else if (gcolor_equal(pixel, GColorOrange))
+             pixel_new = GColorRajah;
+           else if (gcolor_equal(pixel, GColorSunsetOrange))
+             pixel_new = GColorRed;
+           else if (gcolor_equal(pixel, GColorBrilliantRose))
+             pixel_new = GColorJazzberryJam;
+           else if (gcolor_equal(pixel, GColorShockingPink))
+             pixel_new = GColorPurple;
+           else if (gcolor_equal(pixel, GColorChromeYellow))
+             pixel_new = GColorWindsorTan;
+           else if (gcolor_equal(pixel, GColorRajah))
+             pixel_new = GColorOrange;
+           else if (gcolor_equal(pixel, GColorMelon))
+             pixel_new = GColorDarkCandyAppleRed;
+           else if (gcolor_equal(pixel, GColorRichBrilliantLavender))
+             pixel_new = GColorImperialPurple;
+           else if (gcolor_equal(pixel, GColorYellow))
+             pixel_new = GColorChromeYellow;
+           else if (gcolor_equal(pixel, GColorIcterine))
+             pixel_new = GColorChromeYellow;
+           else if (gcolor_equal(pixel, GColorPastelYellow))
+             pixel_new = GColorChromeYellow;
+           
+           set_pixel(bitmap_data, bytes_per_row, y + position.origin.y, x + position.origin.x, pixel_new.argb);
+         }
+     }
+  }
+ 
+  graphics_release_frame_buffer(ctx, fb);          
+          
+#endif
 }
 
 // vertical mirror effect.

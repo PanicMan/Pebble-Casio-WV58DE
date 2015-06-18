@@ -30,11 +30,22 @@ typedef struct {
   uint8_t *aplite_visited; // for Applite holds array of visited pixels
 } EffectOffset;  
 
+//Export Helper
+void set_pixel(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t color);
+uint8_t get_pixel(uint8_t *bitmap_data, int bytes_per_row, int y, int x);
+void fill4(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t colorOld, uint8_t colorNew);
+
 typedef void effect_cb(GContext* ctx, GRect position, void* param);
 
 // inverter effect.
 // Added by Yuriy Galanter
 effect_cb effect_invert;
+
+// Invert only black and white
+effect_cb effect_invert_bw_only;
+
+// Invert brightness of colors (retains hue, does not apply to black and white)
+effect_cb effect_invert_brightness;
 
 // vertical mirror effect.
 // Added by Yuriy Galanter
