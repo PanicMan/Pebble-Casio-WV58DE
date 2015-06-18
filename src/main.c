@@ -255,7 +255,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		if ((tick_time->tm_hour == 4 && tick_time->tm_min == 0) || units_changed == MINUTE_UNIT)
 		{
 			CfgData.isdst = (tick_time->tm_isdst > 0);
-			layer_mark_dirty(background_layer);
+			update_all();
 		}
 		
 		//Hourly vibrate
@@ -280,7 +280,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 static bool update_weather() 
 {
 	strcpy(CfgData.w_icon, "h");
-	layer_mark_dirty(background_layer);
+	update_all();
 	
 	DictionaryIterator *iter;
 	app_message_outbox_begin(&iter);
