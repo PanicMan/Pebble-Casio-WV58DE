@@ -178,34 +178,41 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 	
 	//Weather
 	GRect rc = GRect(95, 30, 34, 34);
-	if (CfgData.weather && CfgData.w_time != 0)
+	if (CfgData.weather)
 	{
-		char sTemp[] = "-999";
-		snprintf(sTemp, sizeof(sTemp), "%d", (int16_t)((double)CfgData.w_temp * (CfgData.isunit ? 1.8 : 1) + (CfgData.isunit ? 32 : 0))); //°C or °F?
-		graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40, 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
-		graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34, 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-
-		GSize sz = graphics_text_layout_get_content_size(CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
-		if (strcmp(CfgData.w_icon, "-") == 0) //Simulate 
+		if (CfgData.w_time != 0)
 		{
-			graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-			graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2+4, rc.origin.y+rc.size.h/2-sz.h/2-4, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+			char sTemp[] = "-999";
+			snprintf(sTemp, sizeof(sTemp), "%d", (int16_t)((double)CfgData.w_temp * (CfgData.isunit ? 1.8 : 1) + (CfgData.isunit ? 32 : 0))); //°C or °F?
+			graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40, 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
+			graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34, 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
-			//Fill front Cloud
-			GBitmap *fb = graphics_capture_frame_buffer(ctx);
-			uint8_t *fb_data =  gbitmap_get_data(fb);
-			uint16_t fb_bpr = gbitmap_get_bytes_per_row(fb);
-			fill4(fb_data, fb_bpr, 48, 112, get_pixel(fb_data, fb_bpr, 48, 112), get_pixel(fb_data, fb_bpr, 51, 109));
-			fill4(fb_data, fb_bpr, 53, 108, get_pixel(fb_data, fb_bpr, 53, 108), get_pixel(fb_data, fb_bpr, 51, 109));
-			graphics_release_frame_buffer(ctx, fb);
+			bool bSim = strcmp(CfgData.w_icon, "-") == 0;
+			GSize sz = graphics_text_layout_get_content_size(bSim ? "!" : CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
+			if (bSim) //Simulate 
+			{
+				//Front Cloud
+				graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+
+				//Fill front Cloud
+				GBitmap *fb = graphics_capture_frame_buffer(ctx);
+				uint8_t *fb_data =  gbitmap_get_data(fb);
+				uint16_t fb_bpr = gbitmap_get_bytes_per_row(fb);
+				floodFill(fb, GPoint(109, 51), get_pixel(fb_data, fb_bpr, 55, 105));
+				graphics_release_frame_buffer(ctx, fb);
+				
+				//Back Cloud
+				graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2+4, rc.origin.y+rc.size.h/2-sz.h/2-4, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+
+			}
+			else
+				graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 		}
 		else
-			graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-	}
-	else
-	{
-		GSize sz = graphics_text_layout_get_content_size("h", WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
-		graphics_draw_text(ctx, "h", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+		{
+			GSize sz = graphics_text_layout_get_content_size("h", WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
+			graphics_draw_text(ctx, "h", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+		}
 	}
 	
 	//AM/PM

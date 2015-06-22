@@ -34,6 +34,7 @@ typedef struct {
 void set_pixel(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t color);
 uint8_t get_pixel(uint8_t *bitmap_data, int bytes_per_row, int y, int x);
 void fill4(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t colorOld, uint8_t colorNew);
+void floodFill(GBitmap* bitmap, GPoint start, uint8_t fill_color);
 
 typedef void effect_cb(GContext* ctx, GRect position, void* param);
 

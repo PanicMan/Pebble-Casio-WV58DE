@@ -36,6 +36,100 @@ void fill4(uint8_t *bitmap_data, int bytes_per_row, int y, int x, uint8_t colorO
 	return;
 }
 
+#define increase_queue_size(queue, max_size) \
+GPoint *tmp_queue = malloc(sizeof(GPoint) * (max_size + 1)); \
+memcpy(tmp_queue, queue, sizeof(GPoint) * max_size); \
+max_size++; \
+free(queue); \
+queue = tmp_queue; 
+
+/**
+ * Flood fill algorithm : http://en.wikipedia.org/wiki/Flood_fill
+ */
+void floodFill(GBitmap* bitmap, GPoint start, uint8_t fill_color)
+{
+	uint8_t* img_pixels = gbitmap_get_data(bitmap);
+	uint16_t bytes_per_row = gbitmap_get_bytes_per_row(bitmap);
+	uint8_t old_color = get_pixel(img_pixels, bytes_per_row, start.y, start.x);
+	if (old_color == fill_color) return; //Do nothing if the same color
+	
+	GRect bounds_bmp = gbitmap_get_bounds(bitmap);
+
+	uint32_t max_size = 6;
+	GPoint *queue = malloc(sizeof(GPoint) * max_size);
+	uint32_t size = 0;
+
+	int32_t x = start.x;
+	int32_t y = start.y;
+
+	queue[size++] = (GPoint){x,y};
+	int32_t w,e;
+
+	while(size > 0)
+	{
+		size--;
+		x = queue[size].x;
+		y = queue[size].y;
+		w = e = x;
+
+		while(e < bounds_bmp.size.w && old_color == get_pixel(img_pixels, bytes_per_row, y, e))
+			e++;
+		while(w >= 0 && old_color == get_pixel(img_pixels, bytes_per_row, y, w))
+			w--;
+
+		bool up = false;
+		bool down = false;
+		for(x=w+1; x<e; x++)
+		{	
+			set_pixel(img_pixels, bytes_per_row,  y, x, fill_color);
+
+			if(old_color == get_pixel(img_pixels, bytes_per_row, y+1, x))
+				down = true;
+			else if(down) 
+			{
+				down = false;
+				if(size == max_size)
+				{
+					increase_queue_size(queue, max_size)
+				}
+				queue[size++] = (GPoint){x-1, y+1};
+			}
+
+			if(old_color == get_pixel(img_pixels, bytes_per_row, y-1, x))
+				up = true;
+			else if(up) 
+			{
+				up = false;
+				if(size == max_size)
+				{
+					increase_queue_size(queue, max_size)
+				}
+				queue[size++] = (GPoint){x-1, y-1};
+			}
+		}
+		if(down) 
+		{
+			down = false;
+			if(size == max_size)
+			{
+				increase_queue_size(queue, max_size)
+			}
+			queue[size++] = (GPoint){x-1, y+1};
+		}
+		if(up) 
+		{
+			up = false;
+			if(size == max_size)
+			{
+				increase_queue_size(queue, max_size)
+			}
+			queue[size++] = (GPoint){x-1, y-1};
+		}
+	}
+
+	free(queue);
+}
+
 // THE EXTREMELY FAST LINE ALGORITHM Variation E (Addition Fixed Point PreCalc Small Display)
 // Small Display (256x256) resolution.
 // based on algorythm by Po-Han Lin at http://www.edepot.com
