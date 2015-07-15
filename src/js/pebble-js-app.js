@@ -34,7 +34,7 @@ function sendMessageToPebble(payload) {
 			console.log('Successfully delivered message (' + e.payload + ') with transactionId='+ e.data.transactionId);
 		},
 		function(e) {
-			console.log('Unable to deliver message with transactionId=' + e.data.transactionId + ' Error is: ' + e.error.message);
+			console.log('Unable to deliver message with transactionId=' + e.data.transactionId + ' Error is: ' + e.data.error.message);
 		});
 }
 //-----------------------------------------------------------------------------------------------------------------------
