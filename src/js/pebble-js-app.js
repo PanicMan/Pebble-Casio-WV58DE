@@ -34,7 +34,7 @@ function sendMessageToPebble(payload) {
 			console.log('Successfully delivered message (' + e.payload + ') with transactionId='+ e.data.transactionId);
 		},
 		function(e) {
-			console.log('Unable to deliver message with transactionId=' + e.data.transactionId + ' Error is: ' + e.data.error.message);
+			console.log('Unable to deliver message with transactionId=' + e.data.transactionId + ' Error is: ' + e.error.message);
 		});
 }
 //-----------------------------------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ Pebble.addEventListener('appmessage', function(e) {
 function updateWeather() {
 	console.log("Updating weather");
 	var req = new XMLHttpRequest();
-	var URL = "http://api.openweathermap.org/data/2.5/weather?";
+	var URL = "http://api.openweathermap.org/data/2.5/weather?APPID=9a4eed6c813f6d55d0699c148f7b575a&";
 	
 	if (CityID !== 0)
 		URL += "id="+CityID.toString();
@@ -107,7 +107,7 @@ Pebble.addEventListener("showConfiguration", function() {
     var options = JSON.parse(localStorage.getItem('cas_wv_28de_opt'));
     console.log("read options: " + JSON.stringify(options));
     console.log("showing configuration");
-	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.2';
+	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.3';
     if (options !== null) {
         uri +=
 			'&inv=' + encodeURIComponent(options.inv) + 

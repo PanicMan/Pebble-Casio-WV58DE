@@ -56,7 +56,7 @@ InverterLayer *inv_layer, *sec_inv_layer;
 static GBitmap *background, *radio, *batteryAll, *batteryAkt;
 static GFont digitS, digitM, digitL, WeatherF;
 
-char ddmmBuffer[] = "00-00", yyyyBuffer[] = "0000", hhmmBuffer[] = "00:00", ssBuffer[] = "00", wdBuffer[] = "XXX";
+char ddmmBuffer[] = "00-00", yyyyBuffer[] = "0000", hhmmBuffer[] = "00:00", ssBuffer[] = "00", wdBuffer[] = "XXXX";
 static uint8_t aktBatt, aktBattAnim;
 static AppTimer *timer_weather, *timer_batt;
 
@@ -241,7 +241,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 			strftime(hhmmBuffer, sizeof(hhmmBuffer), "%I:%M", tick_time);
 		}
 		
-		//strcpy(hhmmBuffer, "22:22");
+		//strcpy(hhmmBuffer, "88:88");
 		text_layer_set_text(hhmm_layer, hhmmBuffer);
 		
 		strftime(ddmmBuffer, sizeof(ddmmBuffer), 
@@ -254,6 +254,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		strftime(wdBuffer, sizeof(wdBuffer), "%a", tick_time);
 		upcase(wdBuffer);
 		text_layer_set_text(wd_layer, wdBuffer);
+		//APP_LOG(APP_LOG_LEVEL_DEBUG, "WeekDay: %s", wdBuffer);
 
 		strftime(yyyyBuffer, sizeof(yyyyBuffer), "%Y", tick_time);
 		text_layer_set_text(yyyy_layer, yyyyBuffer);
@@ -496,6 +497,7 @@ void window_load(Window *window)
 	text_layer_set_background_color(hhmm_layer, GColorClear);
 	text_layer_set_text_color(hhmm_layer, GColorBlack);
 	text_layer_set_text_alignment(hhmm_layer, GTextAlignmentCenter);
+	text_layer_set_overflow_mode(hhmm_layer, GTextOverflowModeFill);
 	text_layer_set_font(hhmm_layer, digitL);
 	layer_add_child(window_layer, text_layer_get_layer(hhmm_layer));
         
@@ -572,6 +574,17 @@ void window_unload(Window *window)
 //-----------------------------------------------------------------------------------------------------------------------
 void handle_init(void) 
 {
+	char* sLocale = setlocale(LC_TIME, ""), sLang[3];
+	if (strncmp(sLocale, "en", 2) == 0)
+		strcpy(sLang, "en");
+	else if (strncmp(sLocale, "de", 2) == 0)
+		strcpy(sLang, "de");
+	else if (strncmp(sLocale, "es", 2) == 0)
+		strcpy(sLang, "es");
+	else if (strncmp(sLocale, "fr", 2) == 0)
+		strcpy(sLang, "fr");
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Time locale is set to: %s/%s", sLocale, sLang);
+
 	window = window_create();
 	window_set_window_handlers(window, (WindowHandlers) {
 		.load = window_load,

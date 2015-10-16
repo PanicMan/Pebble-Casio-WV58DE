@@ -15,11 +15,34 @@
         "location",
         "configurable"
     ],
-    "companyName": "PanicMan",
+    "companyName": "PanicMan/Jack T.",
     "longName": "Casio WV-58DE",
     "projectType": "native",
     "resources": {
         "media": [
+            {
+                "characterRegex": "[0-9:]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_55",
+                "trackingAdjust": -3,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[-/0-9.]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_25",
+                "trackingAdjust": -1,
+                "type": "font"
+            },
+            {
+                "characterRegex": "[a-zA-Z\u00c9\u00c1]",
+                "compatibility": "2.7",
+                "file": "fonts/DIGITAL_BOLD.TTF",
+                "name": "FONT_DIGITAL_35",
+                "type": "font"
+            },
             {
                 "file": "images/MenuImage.png",
                 "menuIcon": true,
@@ -45,29 +68,6 @@
                 "file": "images/Radio.png",
                 "name": "IMAGE_RADIO",
                 "type": "png"
-            },
-            {
-                "characterRegex": "[0-9:]",
-                "compatibility": "2.7",
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "name": "FONT_DIGITAL_55",
-                "trackingAdjust": -3,
-                "type": "font"
-            },
-            {
-                "characterRegex": "[-/0-9.]",
-                "compatibility": "2.7",
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "name": "FONT_DIGITAL_25",
-                "trackingAdjust": -1,
-                "type": "font"
-            },
-            {
-                "characterRegex": "[A-Z]",
-                "compatibility": "2.7",
-                "file": "fonts/DIGITAL_BOLD.TTF",
-                "name": "FONT_DIGITAL_35",
-                "type": "font"
             }
         ]
     },
@@ -78,7 +78,7 @@
         "basalt"
     ],
     "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
-    "versionLabel": "2.2",
+    "versionLabel": "2.3",
     "watchapp": {
         "watchface": true
     }
