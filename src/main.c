@@ -10,6 +10,7 @@ enum ConfigKeys {
 	C_UNITS=5,
 	C_CKEY=6,
 	C_VIBR_BT=7,
+	C_SHOWSEC=8,
 	W_TIME=90,
 	W_TEMP=91,
 	W_ICON=92
@@ -17,6 +18,7 @@ enum ConfigKeys {
 
 typedef struct {
 	bool inv;
+	uint8_t showsec;
 	bool vibr, vibr_bt;
 	uint16_t datefmt;
 	bool isdst, isAM;
@@ -32,6 +34,7 @@ typedef struct {
 
 static CfgDta_t CfgData = {
 	.inv = false,
+	.showsec = 1,
 	.vibr = false,
 	.vibr_bt = true,
 	.datefmt = 1,
@@ -76,7 +79,8 @@ static void update_all()
 	{
 		Layer *window_layer = window_get_root_layer(window);
 		layer_remove_from_parent(text_layer_get_layer(ss_layer));
-		layer_add_child(window_layer, text_layer_get_layer(ss_layer));	
+		if (CfgData.showsec > 0)
+			layer_add_child(window_layer, text_layer_get_layer(ss_layer));	
 		layer_remove_from_parent(inverter_layer_get_layer(inv_layer));
 		if (CfgData.inv)
 			layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
@@ -86,7 +90,7 @@ static void update_all()
 //-----------------------------------------------------------------------------------------------------------------------
 static void secwnd_update_proc(Layer *layer, GContext *ctx) 
 {
-	//app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Second Windows Layer Update");
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Second Windows Layer Update");
 	graphics_context_set_fill_color(ctx, GColorWhite);
 	graphics_fill_rect(ctx, GRect(114, 66, 25, 18), 0, GCornerNone);
 }
@@ -151,7 +155,7 @@ void bluetooth_connection_handler(bool connected)
 //-----------------------------------------------------------------------------------------------------------------------
 static void background_layer_update_callback(Layer *layer, GContext* ctx) 
 {
-	//app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Background Layer Update");
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Background Layer Update");
 	graphics_context_set_text_color(ctx, GColorBlack);
 
 	//Background
@@ -228,8 +232,11 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 {
 	uint8_t seconds = tick_time->tm_sec;
 
-	strftime(ssBuffer, sizeof(ssBuffer), "%S", tick_time);
-	text_layer_set_text(ss_layer, ssBuffer);
+	if (CfgData.showsec > 0 && seconds % CfgData.showsec == 0)
+	{
+		strftime(ssBuffer, sizeof(ssBuffer), "%S", tick_time);
+		text_layer_set_text(ss_layer, ssBuffer);
+	}
 
 	if(seconds == 0 || units_changed == MINUTE_UNIT)
 	{
@@ -273,7 +280,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		//Update Background Layer
 		update_all();
 	}
-	else if (!window_stack_contains_window(sec_window))
+	else if (CfgData.showsec > 0 && !window_stack_contains_window(sec_window))
 	{
 		Layer *sec_window_layer = window_get_root_layer(sec_window);
 		layer_remove_from_parent(text_layer_get_layer(ss_layer));
@@ -327,6 +334,9 @@ static void update_configuration(void)
     if (persist_exists(C_INV))
 		CfgData.inv = persist_read_bool(C_INV);
 	
+    if (persist_exists(C_SHOWSEC))
+		CfgData.showsec = persist_read_int(C_SHOWSEC);
+	
     if (persist_exists(C_VIBR))
 		CfgData.vibr = persist_read_bool(C_VIBR);
 	
@@ -354,7 +364,7 @@ static void update_configuration(void)
     if (persist_exists(W_ICON))
 		persist_read_string(W_ICON, CfgData.w_icon, sizeof(CfgData.w_icon));
 
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, showsec:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.showsec, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
 	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Weather Data: w_time:%d, w_temp:%d, w_icon:%s", (int)CfgData.w_time, CfgData.w_temp, CfgData.w_icon);
 	
 	Layer *window_layer = window_get_root_layer(window);
@@ -363,6 +373,11 @@ static void update_configuration(void)
 	layer_remove_from_parent(inverter_layer_get_layer(inv_layer));
 	if (CfgData.inv)
 		layer_add_child(window_layer, inverter_layer_get_layer(inv_layer));
+	
+	//Second Layer
+	layer_remove_from_parent(text_layer_get_layer(ss_layer));
+	if (CfgData.showsec > 0)
+		layer_add_child(window_layer, text_layer_get_layer(ss_layer));	
 	
 	//Get a time structure so that it doesn't start blank
 	time_t tmAkt = time(NULL);
@@ -406,6 +421,14 @@ void in_received_handler(DictionaryIterator *received, void *ctx)
 			break;
 		case C_INV:
 			persist_write_bool(C_INV, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_SHOWSEC:
+			persist_write_int(C_SHOWSEC, 
+				strcmp(akt_tuple->value->cstring, "nev") == 0 ? 0 : 
+				strcmp(akt_tuple->value->cstring, "05s") == 0 ? 5 : 
+				strcmp(akt_tuple->value->cstring, "10s") == 0 ? 10 : 
+				strcmp(akt_tuple->value->cstring, "15s") == 0 ? 15 : 
+				strcmp(akt_tuple->value->cstring, "30s") == 0 ? 30 : 1);
 			break;
 		case C_VIBR:
 			persist_write_bool(C_VIBR, strcmp(akt_tuple->value->cstring, "yes") == 0);
@@ -507,7 +530,6 @@ void window_load(Window *window)
 	text_layer_set_text_color(ss_layer, GColorBlack);
 	text_layer_set_text_alignment(ss_layer, GTextAlignmentCenter);
 	text_layer_set_font(ss_layer, digitS);
-	layer_add_child(window_layer, text_layer_get_layer(ss_layer));
         
 	//Init battery
 	battery_layer = bitmap_layer_create(GRect(116, 90, 20, 10)); 

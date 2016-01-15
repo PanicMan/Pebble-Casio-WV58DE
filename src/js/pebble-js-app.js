@@ -107,10 +107,11 @@ Pebble.addEventListener("showConfiguration", function() {
     var options = JSON.parse(localStorage.getItem('cas_wv_28de_opt'));
     console.log("read options: " + JSON.stringify(options));
     console.log("showing configuration");
-	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.3';
+	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.4';
     if (options !== null) {
         uri +=
 			'&inv=' + encodeURIComponent(options.inv) + 
+			'&showsec=' + encodeURIComponent(options.showsec) + 
 			'&vibr=' + encodeURIComponent(options.vibr) + 
 			'&vibr_bt=' + encodeURIComponent(options.vibr_bt) + 
 			'&datefmt=' + encodeURIComponent(options.datefmt) + 

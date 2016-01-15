@@ -4,6 +4,7 @@
         "cityid": 6,
         "datefmt": 3,
         "inv": 1,
+        "showsec": 8,
         "units": 5,
         "vibr": 2,
         "vibr_bt": 7,
@@ -21,11 +22,31 @@
     "resources": {
         "media": [
             {
-                "characterRegex": "[0-9:]",
+                "file": "images/Radio.png",
+                "name": "IMAGE_RADIO",
+                "type": "bitmap"
+            },
+            {
+                "file": "images/MenuImage.png",
+                "menuIcon": true,
+                "name": "RESOURCE_ID_IMAGE_MENUICON",
+                "type": "bitmap"
+            },
+            {
+                "file": "images/Battery.png",
+                "name": "IMAGE_BATTERIES",
+                "type": "bitmap"
+            },
+            {
+                "file": "images/Background.png",
+                "name": "IMAGE_BACKGROUND",
+                "type": "bitmap"
+            },
+            {
+                "characterRegex": "[a-zA-Z\u00c9\u00c1]",
                 "compatibility": "2.7",
                 "file": "fonts/DIGITAL_BOLD.TTF",
-                "name": "FONT_DIGITAL_55",
-                "trackingAdjust": -3,
+                "name": "FONT_DIGITAL_35",
                 "type": "font"
             },
             {
@@ -37,37 +58,17 @@
                 "type": "font"
             },
             {
-                "characterRegex": "[a-zA-Z\u00c9\u00c1]",
+                "characterRegex": "[0-9:]",
                 "compatibility": "2.7",
                 "file": "fonts/DIGITAL_BOLD.TTF",
-                "name": "FONT_DIGITAL_35",
+                "name": "FONT_DIGITAL_55",
+                "trackingAdjust": -3,
                 "type": "font"
-            },
-            {
-                "file": "images/MenuImage.png",
-                "menuIcon": true,
-                "name": "RESOURCE_ID_IMAGE_MENUICON",
-                "type": "png"
-            },
-            {
-                "file": "images/Battery.png",
-                "name": "IMAGE_BATTERIES",
-                "type": "png"
             },
             {
                 "file": "fonts/Climacons.ttf",
                 "name": "FONT_WEATHER_32",
                 "type": "font"
-            },
-            {
-                "file": "images/Background.png",
-                "name": "IMAGE_BACKGROUND",
-                "type": "png"
-            },
-            {
-                "file": "images/Radio.png",
-                "name": "IMAGE_RADIO",
-                "type": "png"
             }
         ]
     },
@@ -78,7 +79,7 @@
         "basalt"
     ],
     "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
-    "versionLabel": "2.3",
+    "versionLabel": "2.4",
     "watchapp": {
         "watchface": true
     }
