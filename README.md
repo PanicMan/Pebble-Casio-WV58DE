@@ -12,10 +12,10 @@ You can download it in the Pebble Store:
 
 Update History
 ==============
-v2.6 - Fixed radio icon on aplite platform - Changed background to have smaller outer lines (thanks Ha Do Bac)
-v2.5: Bad looking Workaround for missing Radio on old Pebble, awaiting Bugfix in the SDK.
-v2.4: Added option to hide seconds or update only on specific intervall
-v2.3: Fixed Weather
+v2.6 - Fixed radio icon on aplite platform - Changed background to have smaller outer lines (thanks Ha Do Bac)<br>
+v2.5: Bad looking Workaround for missing Radio on old Pebble, awaiting Bugfix in the SDK.<br>
+v2.4: Added option to hide seconds or update only on specific intervall<br>
+v2.3: Fixed Weather<br>
 v2.0: Added Weather, Battery Charge Animation, Vibration for BT loss, AM/PM Symbols for 12h Clock and  smoother Graphics for Pebble Time. Fixed DD/MM Display for US form.<br>
 v1.4: Add Settings for inverted, hourly vibration and date format<br>
 v1.3: Changed Menu Image<br>
