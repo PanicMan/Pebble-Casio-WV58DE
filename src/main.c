@@ -164,12 +164,12 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 
 	//DD
 	GBitmap *bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 115, 12, 5));
-	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 12 : 48, 5, 12, 5));
+	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 17 : 48, 5, 12, 5));
 	gbitmap_destroy(bmpTmp);
 	
 	//MM
 	bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 120, 12, 5));
-	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 48 : 12, 5, 12, 5));
+	graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(CfgData.datefmt != 3 ? 48 : 17, 5, 12, 5));
 	gbitmap_destroy(bmpTmp);
 	
 	//DST
@@ -548,11 +548,7 @@ void window_load(Window *window)
 	radio_layer = bitmap_layer_create(GRect(106, 130, 31, 33));
 	bitmap_layer_set_background_color(radio_layer, GColorClear);
 	bitmap_layer_set_bitmap(radio_layer, radio);
-#ifdef PBL_COLOR
 	bitmap_layer_set_compositing_mode(radio_layer, GCompOpSet);
-#else
-	bitmap_layer_set_compositing_mode(radio_layer, GCompOpAnd);
-#endif
 	layer_add_child(window_layer, bitmap_layer_get_layer(radio_layer));
 	
 	//Init inverter_layer

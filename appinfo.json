@@ -22,8 +22,15 @@
     "resources": {
         "media": [
             {
+                "file": "images/Background.png",
+                "name": "IMAGE_BACKGROUND",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
                 "file": "images/Radio.png",
                 "name": "IMAGE_RADIO",
+                "targetPlatforms": null,
                 "type": "bitmap"
             },
             {
@@ -35,11 +42,6 @@
             {
                 "file": "images/Battery.png",
                 "name": "IMAGE_BATTERIES",
-                "type": "bitmap"
-            },
-            {
-                "file": "images/Background.png",
-                "name": "IMAGE_BACKGROUND",
                 "type": "bitmap"
             },
             {
@@ -79,7 +81,7 @@
         "basalt"
     ],
     "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
-    "versionLabel": "2.4",
+    "versionLabel": "2.6",
     "watchapp": {
         "watchface": true
     }
