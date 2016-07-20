@@ -47,7 +47,7 @@
             {
                 "characterRegex": "[a-zA-Z\u00c9\u00c1]",
                 "compatibility": "2.7",
-                "file": "fonts/DIGITAL_BOLD.TTF",
+                "file": "fonts/MobileMan.ttf",
                 "name": "FONT_DIGITAL_35",
                 "type": "font"
             },
