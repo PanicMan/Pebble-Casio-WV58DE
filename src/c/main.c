@@ -1,5 +1,6 @@
 #include <pebble.h>
-#include "effect_layer.h"
+#include <pebble-effect-layer/pebble-effect-layer.h>
+
 
 enum ConfigKeys {
 	JS_READY=0,
@@ -11,6 +12,8 @@ enum ConfigKeys {
 	C_CKEY=6,
 	C_VIBR_BT=7,
 	C_SHOWSEC=8,
+	C_BATT_DGT=9,
+	C_BATT_SHOW=10,
 	W_TIME=90,
 	W_TEMP=91,
 	W_ICON=92
@@ -18,16 +21,16 @@ enum ConfigKeys {
 
 typedef struct {
 	bool inv;
-	uint8_t showsec;
-	bool vibr, vibr_bt;
+	uint8_t showsec, showbatt;
+	bool vibr, vibr_bt, battdgt;
 	uint16_t datefmt;
 	bool isdst, isAM;
-	bool weather;
+	bool weather, cond;
 	bool isunit;
 	uint32_t cityid;
 	uint32_t w_time;
 	int16_t w_temp;
-	char w_icon[2];
+	char w_icon[2], w_cond[50];
 	bool w_UpdateRetry;
 	bool s_Charging;
 } __attribute__((__packed__)) CfgDta_t;
@@ -35,19 +38,23 @@ typedef struct {
 static CfgDta_t CfgData = {
 	.inv = false,
 	.showsec = 1,
+	.showbatt = 100,
 	.vibr = false,
 	.vibr_bt = true,
+	.battdgt = false,	
 	.datefmt = 1,
 	.isdst = false,
 	.isAM = false,
 	.weather = true,
+	.cond = true,
 	.isunit = false,
 	.cityid = 0,
 	.w_time = 0,
 	.w_temp = 0,
 	.w_icon = " ",
+	.w_cond = "Überwiegend bewölkt",
 	.w_UpdateRetry = false,
-	.s_Charging = false
+	.s_Charging = false,
 };
 
 Window *window, *sec_window;
@@ -57,7 +64,7 @@ BitmapLayer *radio_layer, *battery_layer;
 InverterLayer *inv_layer, *sec_inv_layer;
 
 static GBitmap *background, *radio, *batteryAll, *batteryAkt;
-static GFont digitS, digitM, digitL, WeatherF;
+static GFont digitS, digitM, digitL, WeatherF, arial9;
 
 char ddmmBuffer[] = "00-00", yyyyBuffer[] = "0000", hhmmBuffer[] = "00:00", ssBuffer[] = "00", wdBuffer[] = "XXXX";
 static uint8_t aktBatt, aktBattAnim;
@@ -139,6 +146,8 @@ void battery_state_service_handler(BatteryChargeState charge_state)
 	gbitmap_destroy(batteryAkt);
 	batteryAkt = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 10*nImage, 20, 10));
 	bitmap_layer_set_bitmap(battery_layer, batteryAkt);
+	layer_set_hidden(bitmap_layer_get_layer(battery_layer), !CfgData.s_Charging && (CfgData.battdgt || aktBatt > CfgData.showbatt));	
+	update_all();
 }
 //-----------------------------------------------------------------------------------------------------------------------
 void bluetooth_connection_handler(bool connected)
@@ -173,7 +182,7 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 	gbitmap_destroy(bmpTmp);
 	
 	//DST
-	if (CfgData.isdst)
+	if (true || CfgData.isdst)
 	{
 		bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 110, 12, 5));
 		graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(116, 103, 12, 5));
@@ -187,30 +196,18 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 		if (CfgData.w_time != 0)
 		{
 			char sTemp[] = "-999";
-			snprintf(sTemp, sizeof(sTemp), "%d", (int16_t)((double)CfgData.w_temp * (CfgData.isunit ? 1.8 : 1) + (CfgData.isunit ? 32 : 0))); //°C or °F?
-			graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40, 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
-			graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34, 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+			snprintf(sTemp, sizeof(sTemp), "%d", (int16_t)((double)CfgData.w_temp * (CfgData.isunit ? 1.8 : 1) + (CfgData.isunit ? 32 : 0))); //Â°C or Â°F?
+			graphics_draw_text(ctx, sTemp, digitS, GRect(20, 40 - (CfgData.cond ? 2 : 0), 50, 32), GTextOverflowModeFill, GTextAlignmentRight, NULL);
+			graphics_draw_text(ctx, !CfgData.isunit ? "_" : "`", WeatherF, GRect(72, 34 - (CfgData.cond ? 2 : 0), 18, 32), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
-			bool bSim = strcmp(CfgData.w_icon, "-") == 0;
-			GSize sz = graphics_text_layout_get_content_size(bSim ? "!" : CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
-			if (bSim) //Simulate 
+			GSize sz = graphics_text_layout_get_content_size(CfgData.w_icon, WeatherF, rc, GTextOverflowModeFill, GTextAlignmentCenter);
+			graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+			
+			if (CfgData.cond)
 			{
-				//Front Cloud
-				graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-
-				//Fill front Cloud
-				GBitmap *fb = graphics_capture_frame_buffer(ctx);
-				uint8_t *fb_data =  gbitmap_get_data(fb);
-				uint16_t fb_bpr = gbitmap_get_bytes_per_row(fb);
-				floodFill(fb, GPoint(109, 51), get_pixel(fb_data, fb_bpr, 55, 105));
-				graphics_release_frame_buffer(ctx, fb);
-				
-				//Back Cloud
-				graphics_draw_text(ctx, "!", WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2+4, rc.origin.y+rc.size.h/2-sz.h/2-4, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-
+				sz = graphics_text_layout_get_content_size(CfgData.w_cond, arial9, GRect(5, 65, 108, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft);
+				graphics_draw_text(ctx, CfgData.w_cond, arial9, GRect(5, 66, sz.w, sz.h), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 			}
-			else
-				graphics_draw_text(ctx, CfgData.w_icon, WeatherF, GRect(rc.origin.x+rc.size.w/2-sz.w/2, rc.origin.y+rc.size.h/2-sz.h/2, sz.w, sz.h), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 		}
 		else
 		{
@@ -225,6 +222,16 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 		bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(CfgData.isAM ? 0 : 4, 125, 4, 5));
 		graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(6, 65, 4, 5));
 		gbitmap_destroy(bmpTmp);
+	}
+	
+	//Battery as percent
+	if(!CfgData.s_Charging && CfgData.battdgt && aktBatt <= CfgData.showbatt)
+	{
+		char sTemp[] = "100%";
+		snprintf(sTemp, sizeof(sTemp), "%d%%", aktBatt);
+		
+		//GSize sz = graphics_text_layout_get_content_size(CfgData.w_cond, arial9, GRect(115, 90, 25, 10), GTextOverflowModeFill, GTextAlignmentCenter);
+		graphics_draw_text(ctx, sTemp, arial9, GRect(115, 90, 25, 10), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 	}
 }
 //-----------------------------------------------------------------------------------------------------------------------
@@ -337,7 +344,13 @@ static void update_configuration(void)
     if (persist_exists(C_SHOWSEC))
 		CfgData.showsec = persist_read_int(C_SHOWSEC);
 	
-    if (persist_exists(C_VIBR))
+    if (persist_exists(C_BATT_DGT))
+		CfgData.battdgt = persist_read_bool(C_BATT_DGT);
+	
+    if (persist_exists(C_BATT_SHOW))
+		CfgData.showbatt = persist_read_int(C_BATT_SHOW);
+	
+   if (persist_exists(C_VIBR))
 		CfgData.vibr = persist_read_bool(C_VIBR);
 	
     if (persist_exists(C_VIBR_BT))
@@ -364,7 +377,7 @@ static void update_configuration(void)
     if (persist_exists(W_ICON))
 		persist_read_string(W_ICON, CfgData.w_icon, sizeof(CfgData.w_icon));
 
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, showsec:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.showsec, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, showsec:%d, battdgt:%d, showbatt:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.showsec, CfgData.battdgt, CfgData.showbatt, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
 	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Weather Data: w_time:%d, w_temp:%d, w_icon:%s", (int)CfgData.w_time, CfgData.w_temp, CfgData.w_icon);
 	
 	Layer *window_layer = window_get_root_layer(window);
@@ -378,6 +391,11 @@ static void update_configuration(void)
 	layer_remove_from_parent(text_layer_get_layer(ss_layer));
 	if (CfgData.showsec > 0)
 		layer_add_child(window_layer, text_layer_get_layer(ss_layer));	
+	
+	//Move Hour/Minute layer on condition
+	GRect rc = layer_get_frame(text_layer_get_layer(hhmm_layer));
+	rc.origin.y = CfgData.cond ? 61 : 53;
+	layer_set_frame(text_layer_get_layer(hhmm_layer), rc);
 	
 	//Get a time structure so that it doesn't start blank
 	time_t tmAkt = time(NULL);
@@ -429,6 +447,12 @@ void in_received_handler(DictionaryIterator *received, void *ctx)
 				strcmp(akt_tuple->value->cstring, "10s") == 0 ? 10 : 
 				strcmp(akt_tuple->value->cstring, "15s") == 0 ? 15 : 
 				strcmp(akt_tuple->value->cstring, "30s") == 0 ? 30 : 1);
+			break;
+		case C_BATT_DGT:
+			persist_write_bool(C_BATT_DGT, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
+		case C_BATT_SHOW:
+			persist_write_int(C_BATT_SHOW, intVal);
 			break;
 		case C_VIBR:
 			persist_write_bool(C_VIBR, strcmp(akt_tuple->value->cstring, "yes") == 0);
@@ -491,6 +515,7 @@ void window_load(Window *window)
 	digitM = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DIGITAL_35));
 	digitL = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DIGITAL_55));
  	WeatherF = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_WEATHER_32));
+	arial9 = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ARIAL_BOLD_9));
  
 	Layer *window_layer = window_get_root_layer(window);
 
@@ -534,8 +559,8 @@ void window_load(Window *window)
 	//Init battery
 	battery_layer = bitmap_layer_create(GRect(116, 90, 20, 10)); 
 	bitmap_layer_set_background_color(battery_layer, GColorClear);
-	layer_add_child(window_layer, bitmap_layer_get_layer(battery_layer));
-
+	layer_add_child(window_layer, bitmap_layer_get_layer(battery_layer));	
+	
 	//WEEKDAY layer
 	wd_layer = text_layer_create(GRect(3, 124, 84, 40));
 	text_layer_set_background_color(wd_layer, GColorClear);
@@ -573,6 +598,7 @@ void window_unload(Window *window)
 	fonts_unload_custom_font(digitM);
 	fonts_unload_custom_font(digitL);
 	fonts_unload_custom_font(WeatherF);
+	fonts_unload_custom_font(arial9);
 	
 	//Destroy GBitmaps
 	gbitmap_destroy(batteryAkt);

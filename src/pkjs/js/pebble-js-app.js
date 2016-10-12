@@ -4,7 +4,7 @@ var weatherIcon = {
     "01d" : 'I',
     "02d" : '"',
     "03d" : '!',
-    "04d" : '-',
+    "04d" : 'k',
     "09d" : '$',
     "10d" : '+',
     "11d" : 'F',
@@ -13,7 +13,7 @@ var weatherIcon = {
     "01n" : 'N',
     "02n" : '#',
     "03n" : '!',
-    "04n" : '-',
+    "04n" : 'k',
     "09n" : '$',
     "10n" : ',',
     "11n" : 'F',
@@ -80,7 +80,7 @@ function updateWeather() {
 	else if (posLat != "0" && posLon != "0")
 		URL += "lat=" + posLat + "&lon=" + posLon;
 	else
-		return; //Error
+		return; //Error, no position data
 	
 	URL += "&units=metric&lang=en&type=accurate";
 	console.log("UpdateURL: " + URL);
@@ -107,11 +107,13 @@ Pebble.addEventListener("showConfiguration", function() {
     var options = JSON.parse(localStorage.getItem('cas_wv_28de_opt'));
     console.log("read options: " + JSON.stringify(options));
     console.log("showing configuration");
-	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.6';
+	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.7';
     if (options !== null) {
         uri +=
 			'&inv=' + encodeURIComponent(options.inv) + 
 			'&showsec=' + encodeURIComponent(options.showsec) + 
+			'&battdgt=' + encodeURIComponent(options.battdgt) + 
+			'&showbatt=' + encodeURIComponent(options.showbatt) + 
 			'&vibr=' + encodeURIComponent(options.vibr) + 
 			'&vibr_bt=' + encodeURIComponent(options.vibr_bt) + 
 			'&datefmt=' + encodeURIComponent(options.datefmt) + 

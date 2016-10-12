@@ -1,0 +1,107 @@
+{
+    "author": "PanicMan/Jack T.",
+    "dependencies": {
+        "pebble-effect-layer": "^1.1.3"
+    },
+    "keywords": [],
+    "name": "casio-wv-58de",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "configurable"
+        ],
+        "displayName": "Casio WV-58DE",
+        "enableMultiJS": false,
+        "messageKeys": {
+            "JS_READY": 0,
+            "battdgt": 9,
+            "cityid": 6,
+            "datefmt": 3,
+            "inv": 1,
+            "showbatt": 10,
+            "showsec": 8,
+            "units": 5,
+            "vibr": 2,
+            "vibr_bt": 7,
+            "w_icon": 92,
+            "w_temp": 91,
+            "weather": 4
+        },
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "characterRegex": "[%0-9a-zA-Z\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df\u00c0\u00c2\u00c4\u00c1\u00c8\u00c9\u00ca\u00cb\u00ce\u00cf\u00cd\u00d4\u00d3\u0152\u00d9\u00db\u00dc\u00da\u0178\u00d1\u00e0\u00e2\u00e4\u00e1\u00e8\u00e9\u00ea\u00eb\u00ee\u00ef\u00ed\u00f4\u00f3\u0153\u00f9\u00fb\u00fc\u00fa\u00ff\u00c7\u00e7\u00f1\u00bf\u00a1\u00ba\u00aa. ]",
+                    "file": "fonts/arialbd.ttf",
+                    "name": "FONT_ARIAL_BOLD_9",
+                    "targetPlatforms": null,
+                    "type": "font"
+                },
+                {
+                    "file": "images/Radio.png",
+                    "name": "IMAGE_RADIO",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/MenuImage.png",
+                    "menuIcon": true,
+                    "name": "RESOURCE_ID_IMAGE_MENUICON",
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Battery.png",
+                    "name": "IMAGE_BATTERIES",
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Background.png",
+                    "name": "IMAGE_BACKGROUND",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "characterRegex": "[a-zA-Z\u00c9\u00c1]",
+                    "file": "fonts/MobileMan.ttf",
+                    "name": "FONT_DIGITAL_35",
+                    "targetPlatforms": null,
+                    "type": "font"
+                },
+                {
+                    "characterRegex": "[0-9:]",
+                    "compatibility": "2.7",
+                    "file": "fonts/DIGITAL_BOLD.TTF",
+                    "name": "FONT_DIGITAL_55",
+                    "trackingAdjust": -3,
+                    "type": "font"
+                },
+                {
+                    "characterRegex": "[-/0-9.]",
+                    "compatibility": "2.7",
+                    "file": "fonts/DIGITAL_BOLD.TTF",
+                    "name": "FONT_DIGITAL_25",
+                    "trackingAdjust": -1,
+                    "type": "font"
+                },
+                {
+                    "characterRegex": "[I\\\"!k$+F9=N#,>`_h]",
+                    "file": "fonts/Climacons.ttf",
+                    "name": "FONT_WEATHER_32",
+                    "targetPlatforms": null,
+                    "type": "font"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "diorite"
+        ],
+        "uuid": "3b0996db-d1f4-4420-8676-1482f52ff3cd",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "2.7.0"
+}
