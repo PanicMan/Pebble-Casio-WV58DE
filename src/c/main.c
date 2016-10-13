@@ -54,7 +54,7 @@ static CfgDta_t CfgData = {
 	.w_time = 0,
 	.w_temp = 0,
 	.w_icon = " ",
-	.w_cond = "Updating...",
+	.w_cond = "",
 	.w_UpdateRetry = false,
 	.s_Charging = false,
 };
