@@ -14,9 +14,11 @@ enum ConfigKeys {
 	C_SHOWSEC=8,
 	C_BATT_DGT=9,
 	C_BATT_SHOW=10,
+	C_COND_SHOW=11,
 	W_TIME=90,
 	W_TEMP=91,
-	W_ICON=92
+	W_ICON=92,
+	W_COND=93
 };
 
 typedef struct {
@@ -46,13 +48,13 @@ static CfgDta_t CfgData = {
 	.isdst = false,
 	.isAM = false,
 	.weather = true,
-	.cond = true,
+	.cond = false,
 	.isunit = false,
 	.cityid = 0,
 	.w_time = 0,
 	.w_temp = 0,
 	.w_icon = " ",
-	.w_cond = "Überwiegend bewölkt",
+	.w_cond = "Updating...",
 	.w_UpdateRetry = false,
 	.s_Charging = false,
 };
@@ -182,7 +184,7 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 	gbitmap_destroy(bmpTmp);
 	
 	//DST
-	if (true || CfgData.isdst)
+	if (CfgData.isdst)
 	{
 		bmpTmp = gbitmap_create_as_sub_bitmap(batteryAll, GRect(0, 110, 12, 5));
 		graphics_draw_bitmap_in_rect(ctx, bmpTmp, GRect(116, 103, 12, 5));
@@ -205,8 +207,8 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 			
 			if (CfgData.cond)
 			{
-				sz = graphics_text_layout_get_content_size(CfgData.w_cond, arial9, GRect(5, 65, 108, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft);
-				graphics_draw_text(ctx, CfgData.w_cond, arial9, GRect(5, 66, sz.w, sz.h), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+				//sz = graphics_text_layout_get_content_size(CfgData.w_cond, arial9, GRect(5, 65, 108, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter);
+				graphics_draw_text(ctx, CfgData.w_cond, arial9, GRect(5, 66, 108, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 			}
 		}
 		else
@@ -229,8 +231,6 @@ static void background_layer_update_callback(Layer *layer, GContext* ctx)
 	{
 		char sTemp[] = "100%";
 		snprintf(sTemp, sizeof(sTemp), "%d%%", aktBatt);
-		
-		//GSize sz = graphics_text_layout_get_content_size(CfgData.w_cond, arial9, GRect(115, 90, 25, 10), GTextOverflowModeFill, GTextAlignmentCenter);
 		graphics_draw_text(ctx, sTemp, arial9, GRect(115, 90, 25, 10), GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 	}
 }
@@ -302,6 +302,7 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 static bool update_weather() 
 {
 	strcpy(CfgData.w_icon, "h");
+	strcpy(CfgData.w_cond, "Updating...");
 	update_all();
 	
 	DictionaryIterator *iter;
@@ -362,6 +363,9 @@ static void update_configuration(void)
     if (persist_exists(C_WEATHER))
 		CfgData.weather = persist_read_bool(C_WEATHER);
 	
+    if (persist_exists(C_COND_SHOW))
+		CfgData.cond = persist_read_bool(C_COND_SHOW);
+	
     if (persist_exists(C_UNITS))
 		CfgData.isunit = persist_read_bool(C_UNITS);
 	
@@ -377,8 +381,12 @@ static void update_configuration(void)
     if (persist_exists(W_ICON))
 		persist_read_string(W_ICON, CfgData.w_icon, sizeof(CfgData.w_icon));
 
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf: inv:%d, showsec:%d, battdgt:%d, showbatt:%d, vibr:%d, datefmt:%d, weather:%d, isunit:%d, cityid:%d", CfgData.inv, CfgData.showsec, CfgData.battdgt, CfgData.showbatt, CfgData.vibr, CfgData.datefmt, CfgData.weather, CfgData.isunit, (int)CfgData.cityid);
-	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Weather Data: w_time:%d, w_temp:%d, w_icon:%s", (int)CfgData.w_time, CfgData.w_temp, CfgData.w_icon);
+	if (persist_exists(W_COND))
+		persist_read_string(W_COND, CfgData.w_cond, sizeof(CfgData.w_cond));
+
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf #1: inv:%d, showsec:%d, battdgt:%d, showbatt:%d, vibr:%d, datefmt:%d, weather:%d", CfgData.inv, CfgData.showsec, CfgData.battdgt, CfgData.showbatt, CfgData.vibr, CfgData.datefmt, CfgData.weather);
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Curr Conf #2: isunit:%d, cityid:%d", CfgData.isunit, (int)CfgData.cityid);
+	app_log(APP_LOG_LEVEL_DEBUG, __FILE__, __LINE__, "Weather Data: w_time:%d, w_temp:%d, w_icon:%s, w_cond:%s", (int)CfgData.w_time, CfgData.w_temp, CfgData.w_icon, CfgData.w_cond);
 	
 	Layer *window_layer = window_get_root_layer(window);
 
@@ -472,6 +480,9 @@ void in_received_handler(DictionaryIterator *received, void *ctx)
 		case C_UNITS:
 			persist_write_bool(C_UNITS, strcmp(akt_tuple->value->cstring, "f") == 0);
 			break;
+		case C_COND_SHOW:
+			persist_write_bool(C_COND_SHOW, strcmp(akt_tuple->value->cstring, "yes") == 0);
+			break;
 		case C_CKEY:
 			persist_write_int(C_CKEY, intVal);
 			if ((int)CfgData.cityid != intVal) //City Changed, force reload weather
@@ -487,6 +498,9 @@ void in_received_handler(DictionaryIterator *received, void *ctx)
 			break;
 		case W_ICON:
 			persist_write_string(W_ICON, akt_tuple->value->cstring);
+			break;
+		case W_COND:
+			persist_write_string(W_COND, akt_tuple->value->cstring);
 			break;
 		}
 		

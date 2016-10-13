@@ -19,10 +19,12 @@
             "datefmt": 3,
             "inv": 1,
             "showbatt": 10,
+            "showcond": 11,
             "showsec": 8,
             "units": 5,
             "vibr": 2,
             "vibr_bt": 7,
+            "w_cond": 93,
             "w_icon": 92,
             "w_temp": 91,
             "weather": 4
@@ -103,5 +105,5 @@
             "watchface": true
         }
     },
-    "version": "2.7.0"
+    "version": "2.8.0"
 }

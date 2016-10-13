@@ -1,30 +1,55 @@
 var initialised = false;
-var CityID = 0, posLat = "0", posLon = "0";
+var CityID = 0, posLat = "0", posLon = "0", lang = "en";
 var weatherIcon = {
-    "01d" : 'I',
-    "02d" : '"',
-    "03d" : '!',
-    "04d" : 'k',
-    "09d" : '$',
-    "10d" : '+',
-    "11d" : 'F',
-    "13d" : '9',
-    "50d" : '=',
-    "01n" : 'N',
-    "02n" : '#',
-    "03n" : '!',
-    "04n" : 'k',
-    "09n" : '$',
-    "10n" : ',',
-    "11n" : 'F',
-    "13n" : '9',
-    "50n" : '>'
+    "01d" : 'I',	//clear sky (day)
+    "02d" : '"',	//few clouds (day)
+    "03d" : '!',	//scattered clouds
+    "04d" : 'k',	//broken clouds
+    "09d" : '$',	//shower rain
+    "10d" : '+',	//rain (day)
+    "11d" : 'F',	//thunderstorm
+    "13d" : '9',	//snow
+    "50d" : '=',	//mist (day)
+    "01n" : 'N',	//clear sky (night)
+    "02n" : '#',	//few clouds (night)
+    "03n" : '!',	//scattered clouds
+    "04n" : 'k',	//broken clouds
+    "09n" : '$',	//shower rain
+    "10n" : ',',	//rain (night)
+    "11n" : 'F',	//thunderstorm
+    "13n" : '9',	//snow
+    "50n" : '>'		//mist (night)
 };
 
 //-----------------------------------------------------------------------------------------------------------------------
 Pebble.addEventListener("ready", function() {
     initialised = true;
-	console.log("JavaScript app ready and running!");
+	var p_lang = "en_US";
+
+	//Get pebble language
+	if(Pebble.getActiveWatchInfo) {
+		try {
+			var watch = Pebble.getActiveWatchInfo();
+			p_lang = watch.language;
+		} catch(err) {
+			console.log("Pebble.getActiveWatchInfo(); Error!");
+		}
+	} 
+
+	//Choose language
+	var sub = p_lang.substring(0, 2);
+	if (sub === "de")
+		lang = "de";
+	else  if (sub === "es")
+		lang = "es";
+	else if (sub === "fr")
+		lang = "fr";
+	else if (sub === "it")
+		lang = "it";
+	else
+		lang = "en";
+
+	console.log("JavaScript app ready and running! Pebble lang: " + p_lang + ", using for Weather: " + lang);
 	sendMessageToPebble({"JS_READY": 1});		
 });
 //-----------------------------------------------------------------------------------------------------------------------
@@ -82,7 +107,7 @@ function updateWeather() {
 	else
 		return; //Error, no position data
 	
-	URL += "&units=metric&lang=en&type=accurate";
+	URL += "&units=metric&lang=" + lang + "&type=accurate";
 	console.log("UpdateURL: " + URL);
 	req.open("GET", URL, true);
 	req.onload = function(e) {
@@ -91,11 +116,13 @@ function updateWeather() {
 				var response = JSON.parse(req.responseText);
 				var temp = Math.round(response.main.temp);//-273.15
 				var icon = response.weather[0].icon;
+				var cond = response.weather[0].description;
 				var name = response.name;
-				console.log("Got Weather Data for City: " + name + ", Temp: " + temp + ", Icon:" + icon + "/" + weatherIcon[icon]);
+				console.log("Got Weather Data for City: " + name + ", Temp: " + temp + ", Icon:" + icon + "/" + weatherIcon[icon]+", Cond:"+cond);
 				sendMessageToPebble({
 					"w_temp": temp,
-					"w_icon": weatherIcon[icon]
+					"w_icon": weatherIcon[icon],
+					"w_cond": cond
 				});
 			}
 		}
@@ -107,7 +134,7 @@ Pebble.addEventListener("showConfiguration", function() {
     var options = JSON.parse(localStorage.getItem('cas_wv_28de_opt'));
     console.log("read options: " + JSON.stringify(options));
     console.log("showing configuration");
-	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.7';
+	var uri = 'http://panicman.github.io/config_casiowv58de.html?title=Casio%20WV-58DE%20v2.8';
     if (options !== null) {
         uri +=
 			'&inv=' + encodeURIComponent(options.inv) + 
@@ -118,6 +145,7 @@ Pebble.addEventListener("showConfiguration", function() {
 			'&vibr_bt=' + encodeURIComponent(options.vibr_bt) + 
 			'&datefmt=' + encodeURIComponent(options.datefmt) + 
 			'&weather=' + encodeURIComponent(options.weather) + 
+			'&showcond=' + encodeURIComponent(options.showcond) + 
 			'&units=' + encodeURIComponent(options.units) + 
 			'&cityid=' + encodeURIComponent(options.cityid);
     }
