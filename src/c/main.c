@@ -266,9 +266,10 @@ void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 		text_layer_set_text(ddmm_layer, ddmmBuffer);
 		
 		strftime(wdBuffer, sizeof(wdBuffer), "%a", tick_time);
+		//strcpy(wdBuffer, "sáb");
 		upcase(wdBuffer);
 		text_layer_set_text(wd_layer, wdBuffer);
-		//APP_LOG(APP_LOG_LEVEL_DEBUG, "WeekDay: %s", wdBuffer);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "WeekDay: %s", wdBuffer);
 
 		strftime(yyyyBuffer, sizeof(yyyyBuffer), "%Y", tick_time);
 		text_layer_set_text(yyyy_layer, yyyyBuffer);
