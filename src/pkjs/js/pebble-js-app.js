@@ -98,7 +98,7 @@ Pebble.addEventListener('appmessage', function(e) {
 function updateWeather() {
 	console.log("Updating weather");
 	var req = new XMLHttpRequest();
-	var URL = "http://api.openweathermap.org/data/2.5/weather?APPID=9a4eed6c813f6d55d0699c148f7b575a&";
+	var URL = "http://api.openweathermap.org/data/2.5/weather?APPID=6ce36772f3bfacc137790e395436216d&";
 	
 	if (CityID !== 0)
 		URL += "id="+CityID.toString();
